@@ -9,15 +9,15 @@ import type { UploadFile, UploadProps } from 'antd';
 const { TextArea } = Input;
 const { Panel } = Collapse;
 
-// Document Analysis Service
+// Document Analysis Service - focused on content extraction for LLM context
 class DocumentAnalysisService {
   private static readonly API_BASE_URL = 'http://localhost:8188';
   
-  static async analyzeDocument(file: File, sessionId: string): Promise<CHAT.DocumentAnalysisResult> {
+  static async extractDocumentContent(file: File, sessionId: string): Promise<CHAT.DocumentAnalysisResult> {
     const formData = new FormData();
-    formData.append('query', '请分析这个文档的内容，提取关键信息、要点和重要细节。');
+    formData.append('query', '请提取文档的完整内容和关键信息，以便后续基于此内容进行问答。');
     formData.append('session_id', sessionId);
-    formData.append('analysis_type', 'general');
+    formData.append('analysis_type', 'content_extraction');
     formData.append('files', file);
 
     try {
@@ -30,9 +30,9 @@ class DocumentAnalysisService {
       if (data.code === 200 && data.data.results.length > 0) {
         return data.data.results[0];
       }
-      throw new Error(data.message || '文档分析失败');
+      throw new Error(data.message || '文档内容提取失败');
     } catch (error) {
-      throw new Error(`分析失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      throw new Error(`内容提取失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   }
 
@@ -91,27 +91,27 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
 
   const generateSessionId = () => `genie-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  const analyzeFile = useCallback(async (file: CHAT.TFile, originalFile: File) => {
+  const processFile = useCallback(async (file: CHAT.TFile, originalFile: File) => {
     const sessionId = generateSessionId();
     
-    // Update file status to analyzing
+    // Update file status to processing
     setFiles(prev => prev.map(f => 
       f.name === file.name ? { ...f, analyzing: true } : f
     ));
 
     try {
-      const analysisResult = await DocumentAnalysisService.analyzeDocument(originalFile, sessionId);
+      const contentResult = await DocumentAnalysisService.extractDocumentContent(originalFile, sessionId);
       
-      // Update file with analysis result
+      // Update file with extracted content for LLM context
       setFiles(prev => prev.map(f => 
         f.name === file.name ? { 
           ...f, 
-          analysis: analysisResult, 
+          analysis: contentResult, 
           analyzing: false 
         } : f
       ));
 
-      message.success(`${file.name} 分析完成`);
+      message.success(`${file.name} 内容提取完成，可作为对话上下文`);
     } catch (error) {
       // Update file with error
       setFiles(prev => prev.map(f => 
@@ -126,14 +126,14 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
               file_size: file.size,
               word_count: 0
             },
-            error: error instanceof Error ? error.message : '分析失败',
+            error: error instanceof Error ? error.message : '内容提取失败',
             timestamp: new Date().toISOString()
           },
           analyzing: false 
         } : f
       ));
 
-      message.error(`${file.name} 分析失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      message.error(`${file.name} 内容提取失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   }, []);
 
@@ -164,9 +164,9 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
         analyzing: false
       };
 
-      // Add to files and start analysis
+      // Add to files and start content extraction
       setFiles(prev => [...prev, enhancedFile]);
-      analyzeFile(enhancedFile, file);
+      processFile(enhancedFile, file);
       
       return false; // Prevent auto upload
     },
@@ -222,16 +222,16 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
   };
 
   const sendMessage = () => {
-    // Don't send if there are files still analyzing
-    const analyzingFiles = files.filter(f => f.analyzing);
-    if (analyzingFiles.length > 0) {
-      message.warning(`请等待 ${analyzingFiles.length} 个文件分析完成`);
+    // Don't send if there are files still being processed
+    const processingFiles = files.filter(f => f.analyzing);
+    if (processingFiles.length > 0) {
+      message.warning(`请等待 ${processingFiles.length} 个文件内容提取完成`);
       return;
     }
 
     // Auto-generate message if only files uploaded
     const actualMessage = question || (files.length > 0 ? 
-      `我上传了 ${files.length} 个文档，请帮我分析和总结主要内容。` : '');
+      `我上传了 ${files.length} 个文档，请基于这些文档内容回答我的问题。` : '');
     
     if (!actualMessage && files.length === 0) return;
 
@@ -278,7 +278,7 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
                   </span>
                   {hasAnalyzing && (
                     <Tag icon={<LoadingOutlined />} color="processing">
-                      分析中...
+                      提取内容...
                     </Tag>
                   )}
                 </div>
@@ -296,17 +296,17 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
                             <Space>
                               {file.analyzing ? (
                                 <Tag icon={<LoadingOutlined />} color="processing" size="small">
-                                  分析中
+                                  提取中
                                 </Tag>
                               ) : file.analysis ? (
                                 <Tag 
                                   color={file.analysis.success ? 'success' : 'error'} 
                                   size="small"
                                 >
-                                  {file.analysis.success ? '已分析' : '分析失败'}
+                                  {file.analysis.success ? '已提取' : '提取失败'}
                                 </Tag>
                               ) : (
-                                <Tag color="default" size="small">待分析</Tag>
+                                <Tag color="default" size="small">待提取</Tag>
                               )}
                               <Button
                                 type="text"
@@ -332,7 +332,7 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
                       {file.analysis?.success && (
                         <Collapse size="small" ghost>
                           <Panel 
-                            header={<span className="text-xs text-blue-600">查看分析摘要</span>} 
+                            header={<span className="text-xs text-blue-600">查看文档内容摘要</span>} 
                             key="analysis"
                           >
                             <div className="text-xs bg-blue-50 p-2 rounded max-h-32 overflow-y-auto">
@@ -451,7 +451,7 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
               <span className="text-[12px] text-gray-300 mr-8 flex items-center">
                 {enterTip}
               </span>
-              <Tooltip title={hasAnalyzing ? "等待文档分析完成" : "发送"}>
+              <Tooltip title={hasAnalyzing ? "等待文档内容提取完成" : "发送"}>
                 <i
                   className={`font_family icon-fasongtianchong ${
                     (!question && files.length === 0) || disabled || hasAnalyzing

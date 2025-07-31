@@ -82,14 +82,14 @@ const AttachmentList: GenieType.FC<Props> = (props) => {
             <div className="flex items-center space-x-1">
               {f.analyzing ? (
                 <Tag icon={<LoadingOutlined />} color="processing" size="small">
-                  分析中
+                  提取中
                 </Tag>
               ) : f.analysis ? (
                 <Tag color={f.analysis.success ? 'success' : 'error'} size="small">
-                  {f.analysis.success ? '已分析' : '分析失败'}
+                  {f.analysis.success ? '已提取' : '提取失败'}
                 </Tag>
               ) : (
-                <Tag color="default" size="small">待分析</Tag>
+                <Tag color="default" size="small">待提取</Tag>
               )}
               
               {preview && f.analysis?.success && (
@@ -120,7 +120,7 @@ const AttachmentList: GenieType.FC<Props> = (props) => {
               <Panel 
                 header={
                   <div className="flex items-center space-x-2">
-                    <span className="text-xs font-medium text-blue-600">📊 AI 分析摘要</span>
+                    <span className="text-xs font-medium text-blue-600">📊 文档内容摘要</span>
                   </div>
                 } 
                 key="analysis"
@@ -140,7 +140,7 @@ const AttachmentList: GenieType.FC<Props> = (props) => {
                       onClick={() => reviewFile(f)}
                       className="p-0 mt-2 text-blue-500"
                     >
-                      查看完整分析
+                      查看完整内容
                     </Button>
                   )}
                   
@@ -155,7 +155,7 @@ const AttachmentList: GenieType.FC<Props> = (props) => {
           {/* Error Display */}
           {f.analysis && !f.analysis.success && (
             <div className="bg-red-50 border border-red-200 rounded p-2 text-sm text-red-600">
-              <div className="font-medium">分析失败</div>
+              <div className="font-medium">内容提取失败</div>
               <div>{f.analysis.error}</div>
             </div>
           )}
@@ -165,7 +165,7 @@ const AttachmentList: GenieType.FC<Props> = (props) => {
             <div className="bg-blue-50 border border-blue-200 rounded p-2 text-sm text-blue-600">
               <div className="flex items-center space-x-2">
                 <LoadingOutlined />
-                <span>正在使用 Qwen 分析文档内容...</span>
+                <span>正在提取文档内容作为对话上下文...</span>
               </div>
             </div>
           )}

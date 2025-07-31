@@ -54,8 +54,25 @@ const ChatView: GenieType.FC<Props> = (props) => {
   };
 
   const sendMessage = useMemoizedFn((inputInfo: CHAT.TInputInfo) => {
-    const {message, deepThink, outputStyle} = inputInfo;
+    const {message, deepThink, outputStyle, files} = inputInfo;
     const requestId = getUniqId();
+    
+    // Prepare document context for LLM
+    let contextualQuery = message!;
+    if (files && files.length > 0) {
+      const documentsContext = files
+        .filter(f => f.analysis?.success)
+        .map(f => {
+          const analysis = f.analysis!;
+          return `文档《${analysis.metadata.filename}》内容分析：\n${analysis.analysis}\n`;
+        })
+        .join('\n');
+      
+      if (documentsContext) {
+        contextualQuery = `基于以下文档内容回答问题：\n\n${documentsContext}\n\n用户问题：${message}`;
+      }
+    }
+    
     let currentChat = combineCurrentChat(inputInfo, sessionId, requestId);
     chatList.current =  [...chatList.current, currentChat];
     if (!chatTitle) {
@@ -65,7 +82,7 @@ const ChatView: GenieType.FC<Props> = (props) => {
     const params = {
       sessionId: sessionId,
       requestId: requestId,
-      query: message,
+      query: contextualQuery, // Send contextual query to LLM
       deepThink: deepThink ? 1 : 0,
       outputStyle
     };
