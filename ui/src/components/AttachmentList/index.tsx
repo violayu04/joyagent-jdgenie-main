@@ -1,7 +1,8 @@
 import { iconType } from "@/utils/constants";
 import docxIcon from "@/assets/icon/docx.png";
-import { Tooltip, Tag, Button, Collapse, Card } from "antd";
+import { Tooltip, Tag, Button, Collapse, Card, Modal } from "antd";
 import { EyeOutlined, LoadingOutlined, FileTextOutlined } from '@ant-design/icons';
+import { useState } from 'react';
 
 const { Panel } = Collapse;
 
@@ -14,6 +15,8 @@ type Props = {
 
 const AttachmentList: GenieType.FC<Props> = (props) => {
   const { files, preview, remove, review } = props;
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<CHAT.TFile | null>(null);
 
   const formatSize = (size: number) => {
     const units = ["B", "KB", "MB", "GB"];
@@ -51,7 +54,17 @@ const AttachmentList: GenieType.FC<Props> = (props) => {
   };
 
   const reviewFile = (f: CHAT.TFile) => {
-    review?.(f);
+    if (f.analysis?.success) {
+      setSelectedFile(f);
+      setModalVisible(true);
+    } else {
+      review?.(f);
+    }
+  };
+
+  const showFullContent = (f: CHAT.TFile) => {
+    setSelectedFile(f);
+    setModalVisible(true);
   };
 
   // Check if we have any files with analysis (enhanced display mode)
@@ -137,7 +150,7 @@ const AttachmentList: GenieType.FC<Props> = (props) => {
                     <Button
                       type="link"
                       size="small"
-                      onClick={() => reviewFile(f)}
+                      onClick={() => showFullContent(f)}
                       className="p-0 mt-2 text-blue-500"
                     >
                       查看完整内容
@@ -219,6 +232,75 @@ const AttachmentList: GenieType.FC<Props> = (props) => {
           {files.map((f, index) => renderBasicFile(f, index))}
         </div>
       )}
+      
+      {/* Document Content Modal */}
+      <Modal
+        title={
+          <div className="flex items-center space-x-2">
+            <span>{selectedFile ? getFileIcon(selectedFile.name) : '📄'}</span>
+            <span>文档内容详情</span>
+          </div>
+        }
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setModalVisible(false)}>
+            关闭
+          </Button>
+        ]}
+        width={900}
+        className="document-content-modal"
+      >
+        {selectedFile?.analysis && (
+          <div className="space-y-4">
+            {/* File Metadata */}
+            <Card size="small" className="bg-gray-50">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div><strong>文件名:</strong> {selectedFile.analysis.metadata.filename}</div>
+                <div><strong>文件类型:</strong> {selectedFile.analysis.metadata.file_type.toUpperCase()}</div>
+                <div><strong>文件大小:</strong> {formatSize(selectedFile.analysis.metadata.file_size)}</div>
+                <div><strong>字数统计:</strong> {selectedFile.analysis.metadata.word_count.toLocaleString()}</div>
+                {selectedFile.analysis.metadata.page_count && (
+                  <div><strong>页数:</strong> {selectedFile.analysis.metadata.page_count}</div>
+                )}
+                <div><strong>提取时间:</strong> {new Date(selectedFile.analysis.timestamp).toLocaleString('zh-CN')}</div>
+              </div>
+            </Card>
+            
+            {/* Document Content */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-lg">文档内容</h4>
+                <Tag color="success">已提取</Tag>
+              </div>
+              
+              <div className="bg-white border rounded-lg p-4 max-h-96 overflow-y-auto">
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-700">
+                  {selectedFile.analysis.analysis}
+                </pre>
+              </div>
+            </div>
+            
+            {/* Content Usage Info */}
+            <Card size="small" title="使用说明" className="bg-blue-50">
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center space-x-2">
+                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                  <span>此文档内容已作为 Genie LLM 的对话上下文</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  <span>您可以基于此内容进行问答和讨论</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                  <span>内容将在整个聊天会话中保持可用</span>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
