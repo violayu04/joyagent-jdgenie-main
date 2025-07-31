@@ -12,8 +12,6 @@ export { default as Slogn } from './Slogn';
 
 export { default as AttachmentList } from './AttachmentList';
 
-export { default as DocumentAnalyzer } from './DocumentAnalyzer';
-
 // Export Loading from ActionPanel
 export { default as Loading } from './ActionPanel/Loading';
 

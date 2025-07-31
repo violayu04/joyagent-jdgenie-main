@@ -6,13 +6,11 @@ import { Loading } from '@/components';
 // 使用常量存储路由路径
 const ROUTES = {
   HOME: '/',
-  DOCUMENTS: '/documents',
   NOT_FOUND: '*',
 };
 
 // 使用 React.lazy 懒加载组件
 const Home = React.lazy(() => import('@/pages/Home'));
-const Documents = React.lazy(() => import('@/pages/Documents'));
 const NotFound = React.lazy(() => import('@/components/NotFound'));
 
 // 创建路由配置
@@ -26,14 +24,6 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<Loading loading={true} className="h-full"/>}>
             <Home />
-          </Suspense>
-        ),
-      },
-      {
-        path: ROUTES.DOCUMENTS,
-        element: (
-          <Suspense fallback={<Loading loading={true} className="h-full"/>}>
-            <Documents />
           </Suspense>
         ),
       },

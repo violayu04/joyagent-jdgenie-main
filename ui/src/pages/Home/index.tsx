@@ -1,17 +1,14 @@
 import { useState, useCallback, memo } from "react";
-import { useNavigate } from 'react-router-dom';
 import GeneralInput from "@/components/GeneralInput";
 import Slogn from "@/components/Slogn";
 import ChatView from "@/components/ChatView";
 import { productList, defaultProduct } from "@/utils/constants";
-import { Image, Button } from "antd";
+import { Image } from "antd";
 import { demoList } from "@/utils/constants";
-import { FileTextOutlined } from '@ant-design/icons';
 
 type HomeProps = Record<string, never>;
 
 const Home: GenieType.FC<HomeProps> = memo(() => {
-  const navigate = useNavigate();
   const [inputInfo, setInputInfo] = useState<CHAT.TInputInfo>({
     message: "",
     deepThink: false,
@@ -78,19 +75,6 @@ const Home: GenieType.FC<HomeProps> = memo(() => {
       return (
         <div className="pt-[120px] flex flex-col items-center">
           <Slogn />
-          
-          {/* Document Analysis Button */}
-          <div className="mb-8">
-            <Button 
-              type="primary" 
-              size="large"
-              icon={<FileTextOutlined />}
-              onClick={() => navigate('/documents')}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 border-none hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              📄 文档智能分析
-            </Button>
-          </div>
           
           <div className="w-640 rounded-xl shadow-[0_18px_39px_0_rgba(198,202,240,0.1)]">
             <GeneralInput
