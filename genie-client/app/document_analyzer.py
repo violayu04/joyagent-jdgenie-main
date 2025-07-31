@@ -312,7 +312,7 @@ class QwenAnalyzer:
         prompt = self._build_analysis_prompt(content, query, metadata)
         
         payload = {
-            "model": "qwen-turbo",  # Adjust model as needed
+            "model": settings.qwen_model,  # Use configurable model
             "input": {
                 "messages": [
                     {
@@ -378,7 +378,7 @@ class QwenAnalyzer:
         """Build context-aware prompt for document analysis"""
         
         # Truncate content if too long (preserve beginning and end)
-        max_content_length = 8000  # Adjust based on model limits
+        max_content_length = settings.max_content_length  # Use configurable limit
         if len(content) > max_content_length:
             middle_point = max_content_length // 2
             content = content[:middle_point] + "\n\n[CONTENT TRUNCATED FOR LENGTH]\n\n" + content[-middle_point:]

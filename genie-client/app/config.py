@@ -21,12 +21,12 @@ class Settings(BaseSettings):
     supported_file_types: list = [".pdf", ".docx", ".doc", ".txt", ".csv", ".json", ".md"]
     
     # API Settings
-    qwen_model: str = "qwen-turbo"
+    qwen_model: str = "qwen-vl-max"
     qwen_base_url: str = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
-    analysis_timeout: int = 60
+    analysis_timeout: int = 120
     
     # Content Processing
-    max_content_length: int = 8000
+    max_content_length: int = 32000
     truncate_content: bool = True
     
     class Config:

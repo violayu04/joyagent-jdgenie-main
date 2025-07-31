@@ -13,7 +13,7 @@ llm:
     base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
     apikey: 'sk-122b6db498d342b2b0fa328f1b0532ae'
     interface_url: '/chat/completions'
-    model: qwen-max
+    model: qwen-turbo
     max_tokens: 16384
   settings: '{"qwen-turbo-model": {
         "model": "qwen-turbo",
