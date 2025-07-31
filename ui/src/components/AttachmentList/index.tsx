@@ -1,6 +1,9 @@
 import { iconType } from "@/utils/constants";
 import docxIcon from "@/assets/icon/docx.png";
-import { Tooltip } from "antd";
+import { Tooltip, Tag, Button, Collapse, Card } from "antd";
+import { EyeOutlined, LoadingOutlined, FileTextOutlined } from '@ant-design/icons';
+
+const { Panel } = Collapse;
 
 type Props = {
   files: CHAT.TFile[];
@@ -9,7 +12,7 @@ type Props = {
   review?: (file: CHAT.TFile) => void;
 };
 
-const GeneralInput: GenieType.FC<Props> = (props) => {
+const AttachmentList: GenieType.FC<Props> = (props) => {
   const { files, preview, remove, review } = props;
 
   const formatSize = (size: number) => {
@@ -20,6 +23,18 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
       unitIndex++;
     }
     return `${size?.toFixed(2)} ${units[unitIndex]}`;
+  };
+
+  const getFileIcon = (filename: string) => {
+    const extension = filename.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'pdf': return '📄';
+      case 'docx': case 'doc': return '📝';
+      case 'txt': case 'md': return '📃';
+      case 'csv': return '📊';
+      case 'json': return '⚙️';
+      default: return '📄';
+    }
   };
 
   const combinIcon = (f: CHAT.TFile) => {
@@ -39,7 +54,127 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
     review?.(f);
   };
 
-  const renderFile = (f: CHAT.TFile, index: number) => {
+  // Check if we have any files with analysis (enhanced display mode)
+  const hasAnalysisFiles = files.some(f => f.analysis || f.analyzing);
+
+  const renderEnhancedFile = (f: CHAT.TFile, index: number) => {
+    return (
+      <Card key={index} size="small" className="bg-blue-50 border-blue-200 mb-2">
+        <div className="space-y-2">
+          {/* File Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-lg">{getFileIcon(f.name)}</span>
+              <div>
+                <div className="font-medium text-sm">{f.name}</div>
+                <div className="text-xs text-gray-500">
+                  {formatSize(f.size)}
+                  {f.analysis?.success && (
+                    <span> • {f.analysis.metadata.word_count} 词</span>
+                  )}
+                  {f.analysis?.metadata.page_count && (
+                    <span> • {f.analysis.metadata.page_count} 页</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-1">
+              {f.analyzing ? (
+                <Tag icon={<LoadingOutlined />} color="processing" size="small">
+                  分析中
+                </Tag>
+              ) : f.analysis ? (
+                <Tag color={f.analysis.success ? 'success' : 'error'} size="small">
+                  {f.analysis.success ? '已分析' : '分析失败'}
+                </Tag>
+              ) : (
+                <Tag color="default" size="small">待分析</Tag>
+              )}
+              
+              {preview && f.analysis?.success && (
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<EyeOutlined />}
+                  onClick={() => reviewFile(f)}
+                  title="查看详细分析"
+                />
+              )}
+              
+              {!preview && (
+                <Button
+                  type="text"
+                  danger
+                  size="small"
+                  icon={<i className="font_family icon-jia-1" />}
+                  onClick={() => removeFile(index)}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Analysis Summary */}
+          {f.analysis?.success && (
+            <Collapse size="small" ghost>
+              <Panel 
+                header={
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs font-medium text-blue-600">📊 AI 分析摘要</span>
+                  </div>
+                } 
+                key="analysis"
+              >
+                <div className="bg-white rounded p-3 border">
+                  <div className="text-sm leading-relaxed text-gray-700">
+                    {f.analysis.analysis.length > 300 
+                      ? `${f.analysis.analysis.substring(0, 300)}...` 
+                      : f.analysis.analysis
+                    }
+                  </div>
+                  
+                  {f.analysis.analysis.length > 300 && (
+                    <Button
+                      type="link"
+                      size="small"
+                      onClick={() => reviewFile(f)}
+                      className="p-0 mt-2 text-blue-500"
+                    >
+                      查看完整分析
+                    </Button>
+                  )}
+                  
+                  <div className="text-xs text-gray-400 mt-2 pt-2 border-t">
+                    分析时间: {new Date(f.analysis.timestamp).toLocaleString('zh-CN')}
+                  </div>
+                </div>
+              </Panel>
+            </Collapse>
+          )}
+
+          {/* Error Display */}
+          {f.analysis && !f.analysis.success && (
+            <div className="bg-red-50 border border-red-200 rounded p-2 text-sm text-red-600">
+              <div className="font-medium">分析失败</div>
+              <div>{f.analysis.error}</div>
+            </div>
+          )}
+
+          {/* Analysis in Progress */}
+          {f.analyzing && (
+            <div className="bg-blue-50 border border-blue-200 rounded p-2 text-sm text-blue-600">
+              <div className="flex items-center space-x-2">
+                <LoadingOutlined />
+                <span>正在使用 Qwen 分析文档内容...</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
+    );
+  };
+
+  const renderBasicFile = (f: CHAT.TFile, index: number) => {
     return (
       <div
         key={index}
@@ -67,11 +202,25 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
     );
   };
 
+  if (files.length === 0) return null;
+
   return (
-    <div className="w-full flex gap-8 flex-wrap">
-      {files.map((f, index) => renderFile(f, index))}
+    <div className="w-full">
+      {hasAnalysisFiles ? (
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2 text-sm text-gray-600 mb-2">
+            <FileTextOutlined />
+            <span>文档附件 ({files.length})</span>
+          </div>
+          {files.map((f, index) => renderEnhancedFile(f, index))}
+        </div>
+      ) : (
+        <div className="flex gap-8 flex-wrap">
+          {files.map((f, index) => renderBasicFile(f, index))}
+        </div>
+      )}
     </div>
   );
 };
 
-export default GeneralInput;
+export default AttachmentList;

@@ -27,7 +27,24 @@ declare global {
       name: string,
       url: string,
       type: string,
-      size: number
+      size: number,
+      analysis?: DocumentAnalysisResult,
+      analyzing?: boolean
+    }
+
+    // Document Analysis Result type
+    export type DocumentAnalysisResult = {
+      success: boolean;
+      analysis: string;
+      metadata: {
+        filename: string;
+        file_type: string;
+        file_size: number;
+        word_count: number;
+        page_count?: number;
+      };
+      error?: string;
+      timestamp: string;
     }
 
     export type TInputInfo = {
