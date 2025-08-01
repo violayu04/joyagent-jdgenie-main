@@ -312,7 +312,7 @@ class QwenAnalyzer:
         prompt = self._build_analysis_prompt(content, query, metadata)
         
         payload = {
-            "model": settings.qwen_model,  # Use configurable model
+            "model": settings.qwen_model,
             "input": {
                 "messages": [
                     {
@@ -320,15 +320,16 @@ class QwenAnalyzer:
                         "content": "You are a document analysis assistant in a banking environment. Provide thorough, accurate analysis while maintaining confidentiality and compliance standards. Focus on financial metrics, risk factors, compliance issues, and business insights."
                     },
                     {
-                        "role": "user",
+                        "role": "user", 
                         "content": prompt
                     }
                 ]
             },
             "parameters": {
-                "temperature": 0.1,  # Low temperature for consistent analysis
+                "temperature": 0.1,
                 "max_tokens": 2000,
-                "top_p": 0.8
+                "top_p": 0.8,
+                "result_format": "message"
             }
         }
         
@@ -342,7 +343,13 @@ class QwenAnalyzer:
             response.raise_for_status()
             
             result = response.json()
-            analysis_text = result.get("output", {}).get("text", "")
+            # Handle DashScope API response format
+            if "output" in result and "choices" in result["output"]:
+                analysis_text = result["output"]["choices"][0]["message"]["content"]
+            elif "output" in result and "text" in result["output"]:
+                analysis_text = result["output"]["text"]
+            else:
+                analysis_text = str(result)
             
             return AnalysisResult(
                 success=True,
