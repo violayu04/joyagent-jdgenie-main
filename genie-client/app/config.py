@@ -20,10 +20,10 @@ class Settings(BaseSettings):
     max_file_size_mb: int = 50
     supported_file_types: list = [".pdf", ".docx", ".doc", ".txt", ".csv", ".json", ".md"]
     
-    # API Settings
-    qwen_model: str = "qwen-turbo"
-    qwen_base_url: str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-    analysis_timeout: int = 120
+    # LLM API Settings
+    qwen_model: str = os.getenv("LLM_MODEL", "qwen-max")
+    qwen_base_url: str = os.getenv("LLM_API_BASE", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+    analysis_timeout: int = int(os.getenv("ANALYSIS_TIMEOUT", "120"))
     
     # Content Processing
     max_content_length: int = 32000

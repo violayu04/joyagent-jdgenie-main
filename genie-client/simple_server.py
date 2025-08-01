@@ -17,7 +17,7 @@ import httpx
 
 # Configuration
 DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
-DASHSCOPE_URL = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
+DASHSCOPE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
 app = FastAPI(
     title="JoyAgent Document Analysis API",

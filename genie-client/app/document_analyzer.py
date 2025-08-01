@@ -300,9 +300,10 @@ class DocumentProcessor:
 class QwenAnalyzer:
     """Interface with Qwen LLM via DashScope API for document analysis"""
     
-    def __init__(self, api_key: str, base_url: str = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"):
+    def __init__(self, api_key: str, base_url: str = None, model: str = None):
         self.api_key = api_key
-        self.base_url = base_url
+        self.base_url = base_url or settings.qwen_base_url
+        self.model = model or settings.qwen_model
         self.client = httpx.AsyncClient(timeout=60.0)
         
     async def analyze_document(self, content: str, query: str, metadata: DocumentMetadata) -> AnalysisResult:
@@ -311,26 +312,22 @@ class QwenAnalyzer:
         # Prepare context-aware prompt
         prompt = self._build_analysis_prompt(content, query, metadata)
         
+        # Use OpenAI-compatible format for DashScope
         payload = {
-            "model": settings.qwen_model,
-            "input": {
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are a document analysis assistant in a banking environment. Provide thorough, accurate analysis while maintaining confidentiality and compliance standards. Focus on financial metrics, risk factors, compliance issues, and business insights."
-                    },
-                    {
-                        "role": "user", 
-                        "content": prompt
-                    }
-                ]
-            },
-            "parameters": {
-                "temperature": 0.1,
-                "max_tokens": 2000,
-                "top_p": 0.8,
-                "result_format": "message"
-            }
+            "model": self.model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a document analysis assistant in a banking environment. Provide thorough, accurate analysis while maintaining confidentiality and compliance standards. Focus on financial metrics, risk factors, compliance issues, and business insights."
+                },
+                {
+                    "role": "user", 
+                    "content": prompt
+                }
+            ],
+            "temperature": 0.1,
+            "max_tokens": 2000,
+            "top_p": 0.8
         }
         
         headers = {
@@ -339,15 +336,15 @@ class QwenAnalyzer:
         }
         
         try:
-            response = await self.client.post(self.base_url, headers=headers, json=payload)
+            # Use DashScope compatible endpoint
+            api_url = f"{self.base_url}/chat/completions"
+            response = await self.client.post(api_url, headers=headers, json=payload)
             response.raise_for_status()
             
             result = response.json()
-            # Handle DashScope API response format
-            if "output" in result and "choices" in result["output"]:
-                analysis_text = result["output"]["choices"][0]["message"]["content"]
-            elif "output" in result and "text" in result["output"]:
-                analysis_text = result["output"]["text"]
+            # Handle OpenAI-compatible response format
+            if "choices" in result and len(result["choices"]) > 0:
+                analysis_text = result["choices"][0]["message"]["content"]
             else:
                 analysis_text = str(result)
             
@@ -362,6 +359,7 @@ class QwenAnalyzer:
             
         except httpx.HTTPError as e:
             logger.error(f"API request failed: {e}")
+            logger.error(f"Response text: {getattr(e.response, 'text', 'No response text')}")
             return AnalysisResult(
                 success=False,
                 analysis="",
@@ -428,7 +426,11 @@ class DocumentAnalysisManager:
     
     def __init__(self, api_key: str, upload_directory: str = "uploads"):
         self.processor = DocumentProcessor(upload_directory)
-        self.analyzer = QwenAnalyzer(api_key)
+        self.analyzer = QwenAnalyzer(
+            api_key=api_key,
+            base_url=settings.qwen_base_url,
+            model=settings.qwen_model
+        )
         self.processed_documents: Dict[str, tuple[str, DocumentMetadata]] = {}  # content_hash -> (content, metadata)
         
     async def process_uploaded_file(self, upload_file: UploadFile) -> tuple[str, DocumentMetadata]:

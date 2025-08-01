@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
             api_key=settings.dashscope_api_key,
             upload_directory=settings.upload_directory
         )
-        logger.info("Document analysis manager initialized")
+        logger.info(f"Document analysis manager initialized with {settings.qwen_model} via {settings.qwen_base_url}")
     else:
         logger.warning("DASHSCOPE_API_KEY not found - document analysis disabled")
     

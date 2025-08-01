@@ -13,10 +13,10 @@ llm:
     base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
     apikey: 'sk-122b6db498d342b2b0fa328f1b0532ae'
     interface_url: '/chat/completions'
-    model: qwen-turbo
+    model: qwen-max
     max_tokens: 16384
-  settings: '{"qwen-turbo-model": {
-        "model": "qwen-turbo",
+  settings: '{"qwen-max-model": {
+        "model": "qwen-max",
         "max_tokens": 8192,
         "temperature": 0.7,
         "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
@@ -99,7 +99,9 @@ autobots:
     code_interpreter_url: "http://127.0.0.1:1601"
     deep_search_url: "http://127.0.0.1:1601"
     mcp_client_url: "http://127.0.0.1:8188"
-    mcp_server_url: "https://mcp.api-inference.modelscope.net/1784ac5c6d0044/sse"
+    mcp_server_url: "https://mcp.api-inference.modelscope.net/dba97483006945/sse"
+ 
+ 
     summary:
       system_prompt: "# 角色
 你是一个超级智能体，你只能根据提供的信息，对用户的问题<query>进行回应，如果没有找到答案，但是有文件时，则提示让用户查看相应的文件。
