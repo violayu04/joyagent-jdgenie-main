@@ -1,0 +1,60 @@
+# JoyAgent 原始文档上传功能配置
+# 将以下配置添加到现有的 application.yml 文件中
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB        # 单个文件最大大小
+      max-request-size: 50MB     # 请求最大大小
+      enabled: true              # 启用文件上传
+
+# 原始文件处理配置
+raw-file:
+  upload:
+    enabled: true                # 启用原始文件上传功能
+    max-file-size: 52428800     # 最大文件大小(50MB)
+    allowed-types:              # 允许的文件类型
+      - "application/pdf"
+      - "application/msword"
+      - "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      - "application/vnd.ms-excel"
+      - "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      - "text/plain"
+      - "image/jpeg"
+      - "image/png"
+      - "image/gif"
+    direct-to-llm: true         # 是否直接发送给LLM（不进行文本提取）
+    skip-analysis: true         # 跳过后端分析
+
+# 更新文件工具配置以支持原始文档上传
+autobots:
+  autoagent:
+    tool:
+      file_tool:
+        desc: "这是一个文件工具，可以上传或下载文件。支持upload_raw命令直接将原始文档内容发送给LLM进行处理，不进行任何后端文本提取或分析。这是'上传文档功能'的核心实现。"
+        params: '{
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "文件操作类型：upload、get、upload_raw（直接发送原始文件给LLM）"
+            },
+            "filename": {
+              "type": "string", 
+              "description": "文件名"
+            },
+            "description": {
+              "type": "string",
+              "description": "文件描述，20字左右，upload时必填"
+            },
+            "content": {
+              "type": "string",
+              "description": "文件内容，upload时必填"
+            },
+            "rawBytes": {
+              "type": "string",
+              "description": "原始文件字节数据的base64编码，upload_raw时必填"
+            }
+          },
+          "required": ["command", "filename"]
+        }'

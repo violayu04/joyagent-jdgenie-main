@@ -1,6 +1,7 @@
 """
-Document Analysis System for JoyAgent
-Handles file upload, content extraction, and LLM analysis for banking environments
+Document Content Extraction System for JoyAgent
+Handles file upload and content extraction for banking environments
+Modified: LLM analysis removed to prevent double LLM calls
 """
 
 import os
@@ -422,7 +423,7 @@ Provide a comprehensive response that addresses the specific question while main
         await self.client.aclose()
 
 class DocumentAnalysisManager:
-    """Main class to manage the document analysis workflow"""
+    """Main class to manage document content extraction workflow (LLM analysis disabled)"""
     
     def __init__(self, api_key: str, upload_directory: str = "uploads"):
         self.processor = DocumentProcessor(upload_directory)
@@ -469,22 +470,31 @@ class DocumentAnalysisManager:
                 logger.warning(f"Failed to clean up temporary file {temp_path}: {e}")
     
     async def analyze_documents(self, request: AnalysisRequest, upload_files: List[UploadFile]) -> List[AnalysisResult]:
-        """Analyze multiple documents with a query"""
+        """Process documents and extract content without LLM analysis"""
         results = []
-        
+
         for upload_file in upload_files:
             try:
-                # Process the file
+                # Process the file to extract content
                 content, metadata = await self.process_uploaded_file(upload_file)
-                
-                # Analyze with Qwen
-                logger.info(f"Analyzing document: {metadata.filename}")
-                analysis_result = await self.analyzer.analyze_document(content, request.query, metadata)
+
+                # Skip LLM analysis - just return extracted content
+                logger.info(f"Content extracted from document: {metadata.filename} (skipping LLM analysis)")
+
+                # Create result with extracted content only
+                analysis_result = AnalysisResult(
+                    success=True,
+                    analysis=content,  # Return raw extracted content instead of LLM analysis
+                    metadata=metadata,
+                    query=request.query,
+                    timestamp=datetime.now(),
+                    error=None
+                )
                 results.append(analysis_result)
-                
+
             except Exception as e:
                 logger.error(f"Error processing file {upload_file.filename}: {e}")
-                
+
                 # Create error metadata
                 error_metadata = DocumentMetadata(
                     filename=upload_file.filename or "unknown",
@@ -494,7 +504,7 @@ class DocumentAnalysisManager:
                     content_hash="error",
                     extraction_status="failed"
                 )
-                
+
                 results.append(AnalysisResult(
                     success=False,
                     analysis="",
@@ -503,7 +513,7 @@ class DocumentAnalysisManager:
                     timestamp=datetime.now(),
                     error=str(e)
                 ))
-        
+
         return results
     
     def get_supported_formats(self) -> Dict[str, str]:

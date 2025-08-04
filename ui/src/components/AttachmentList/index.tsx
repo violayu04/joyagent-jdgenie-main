@@ -1,10 +1,8 @@
 import { iconType } from "@/utils/constants";
 import docxIcon from "@/assets/icon/docx.png";
-import { Tooltip, Tag, Button, Collapse, Card, Modal } from "antd";
+import { Tooltip, Tag, Button, Card, Modal } from "antd";
 import { EyeOutlined, LoadingOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useState } from 'react';
-
-const { Panel } = Collapse;
 
 type Props = {
   files: CHAT.TFile[];
@@ -94,15 +92,15 @@ const AttachmentList: GenieType.FC<Props> = (props) => {
             
             <div className="flex items-center space-x-1">
               {f.analyzing ? (
-                <Tag icon={<LoadingOutlined />} color="processing" size="small">
+                <Tag icon={<LoadingOutlined />} color="processing">
                   提取中
                 </Tag>
               ) : f.analysis ? (
-                <Tag color={f.analysis.success ? 'success' : 'error'} size="small">
+                <Tag color={f.analysis.success ? 'success' : 'error'}>
                   {f.analysis.success ? '已提取' : '提取失败'}
                 </Tag>
               ) : (
-                <Tag color="default" size="small">待提取</Tag>
+                <Tag color="default">待提取</Tag>
               )}
               
               {preview && f.analysis?.success && (
@@ -127,42 +125,19 @@ const AttachmentList: GenieType.FC<Props> = (props) => {
             </div>
           </div>
 
-          {/* Analysis Summary */}
+          {/* Show Full Content Button Directly */}
           {f.analysis?.success && (
-            <Collapse size="small" ghost>
-              <Panel 
-                header={
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xs font-medium text-blue-600">📊 文档内容摘要</span>
-                  </div>
-                } 
-                key="analysis"
+            <div className="mt-2">
+              <Button
+                type="link"
+                size="small"
+                onClick={() => showFullContent(f)}
+                className="text-blue-600 hover:text-blue-800 p-0 h-auto"
+                icon={<EyeOutlined />}
               >
-                <div className="bg-white rounded p-3 border">
-                  <div className="text-sm leading-relaxed text-gray-700">
-                    {f.analysis.analysis.length > 300 
-                      ? `${f.analysis.analysis.substring(0, 300)}...` 
-                      : f.analysis.analysis
-                    }
-                  </div>
-                  
-                  {f.analysis.analysis.length > 300 && (
-                    <Button
-                      type="link"
-                      size="small"
-                      onClick={() => showFullContent(f)}
-                      className="p-0 mt-2 text-blue-500"
-                    >
-                      查看完整内容
-                    </Button>
-                  )}
-                  
-                  <div className="text-xs text-gray-400 mt-2 pt-2 border-t">
-                    分析时间: {new Date(f.analysis.timestamp).toLocaleString('zh-CN')}
-                  </div>
-                </div>
-              </Panel>
-            </Collapse>
+                查看完整内容
+              </Button>
+            </div>
           )}
 
           {/* Error Display */}
@@ -248,56 +223,67 @@ const AttachmentList: GenieType.FC<Props> = (props) => {
             关闭
           </Button>
         ]}
-        width={900}
+        width={1200}
         className="document-content-modal"
       >
         {selectedFile?.analysis && (
-          <div className="space-y-4">
-            {/* File Metadata */}
-            <Card size="small" className="bg-gray-50">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><strong>文件名:</strong> {selectedFile.analysis.metadata.filename}</div>
-                <div><strong>文件类型:</strong> {selectedFile.analysis.metadata.file_type.toUpperCase()}</div>
-                <div><strong>文件大小:</strong> {formatSize(selectedFile.analysis.metadata.file_size)}</div>
-                <div><strong>字数统计:</strong> {selectedFile.analysis.metadata.word_count.toLocaleString()}</div>
-                {selectedFile.analysis.metadata.page_count && (
-                  <div><strong>页数:</strong> {selectedFile.analysis.metadata.page_count}</div>
-                )}
-                <div><strong>提取时间:</strong> {new Date(selectedFile.analysis.timestamp).toLocaleString('zh-CN')}</div>
-              </div>
-            </Card>
-            
-            {/* Document Content */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-lg">文档内容</h4>
-                <Tag color="success">已提取</Tag>
-              </div>
-              
-              <div className="bg-white border rounded-lg p-4 max-h-96 overflow-y-auto">
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-700">
-                  {selectedFile.analysis.analysis}
-                </pre>
+          <div className="flex gap-4 h-[70vh]">
+            {/* Left Navigation Panel - 25% width */}
+            <div className="w-1/4 flex-shrink-0 border-r border-gray-200 pr-4">
+              <div className="space-y-4">
+                <h4 className="font-medium text-lg mb-3">文档内容详情</h4>
+                
+                {/* File Metadata */}
+                <Card size="small" className="bg-gray-50">
+                  <div className="space-y-2 text-sm">
+                    <div><strong>文件名:</strong> {selectedFile.analysis.metadata.filename}</div>
+                    <div><strong>类型:</strong> {selectedFile.analysis.metadata.file_type.toUpperCase()}</div>
+                    <div><strong>大小:</strong> {formatSize(selectedFile.analysis.metadata.file_size)}</div>
+                    <div><strong>字数:</strong> {selectedFile.analysis.metadata.word_count.toLocaleString()}</div>
+                    {selectedFile.analysis.metadata.page_count && (
+                      <div><strong>页数:</strong> {selectedFile.analysis.metadata.page_count}</div>
+                    )}
+                    <div><strong>提取时间:</strong> {new Date(selectedFile.analysis.timestamp).toLocaleString('zh-CN')}</div>
+                  </div>
+                </Card>
+                
+                {/* Content Usage Info */}
+                <Card size="small" title="使用说明" className="bg-blue-50">
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start space-x-2">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                      <span>此文档内容已作为 Genie LLM 的对话上下文</span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="w-2 h-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                      <span>您可以基于此内容进行问答和讨论</span>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <span className="w-2 h-2 bg-purple-500 rounded-full mt-1.5 flex-shrink-0"></span>
+                      <span>内容将在整个聊天会话中保持可用</span>
+                    </div>
+                  </div>
+                </Card>
               </div>
             </div>
             
-            {/* Content Usage Info */}
-            <Card size="small" title="使用说明" className="bg-blue-50">
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center space-x-2">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                  <span>此文档内容已作为 Genie LLM 的对话上下文</span>
+            {/* Right Content Panel - 75% width */}
+            <div className="w-3/4 flex-grow min-w-0">
+              <div className="h-full flex flex-col">
+                <div className="flex items-center justify-between mb-3 flex-shrink-0">
+                  <h4 className="font-medium text-lg">文档内容</h4>
+                  <Tag color="success">已提取</Tag>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  <span>您可以基于此内容进行问答和讨论</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                  <span>内容将在整个聊天会话中保持可用</span>
+                
+                <div className="bg-white border rounded-lg p-4 flex-grow overflow-hidden">
+                  <div className="h-full overflow-y-auto">
+                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-gray-700">
+                      {selectedFile.analysis.analysis}
+                    </pre>
+                  </div>
                 </div>
               </div>
-            </Card>
+            </div>
           </div>
         )}
       </Modal>

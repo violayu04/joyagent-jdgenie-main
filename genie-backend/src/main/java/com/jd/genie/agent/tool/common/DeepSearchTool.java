@@ -190,7 +190,8 @@ public class DeepSearchTool implements BaseTool {
                                             .description(fileDesc)
                                             .content(searchResponse.getAnswer())
                                             .build();
-                                    fileTool.uploadFile(fileRequest, false, false);
+                                    // Using uploadFileLegacy for text content (search answers)
+                                    fileTool.uploadFileLegacy(fileRequest, false, false);
                                     result = searchResponse.getAnswer().
                                             substring(0, Math.min(searchResponse.getAnswer().length(), genieConfig.getDeepSearchToolMessageTruncateLen()));
 
@@ -215,7 +216,8 @@ public class DeepSearchTool implements BaseTool {
                                                 .description(searchResponse.getQuery() + "...")
                                                 .content(JSON.toJSONString(contentMap))
                                                 .build();
-                                        fileTool.uploadFile(fileRequest, false, true);
+                                        // Using uploadFileLegacy for text content (search results)
+                                        fileTool.uploadFileLegacy(fileRequest, false, true);
                                     } else if ("report".equals(searchResponse.getMessageType())) {
                                         if (index == 1) {
                                             messageId = StringUtil.getUUID();

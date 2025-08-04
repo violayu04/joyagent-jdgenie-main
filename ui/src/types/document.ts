@@ -1,3 +1,81 @@
 // Document Analysis Types for JoyAgent
 
-export interface DocumentAnalysisResult {\n  success: boolean;\n  analysis: string;\n  metadata: {\n    filename: string;\n    file_type: string;\n    file_size: number;\n    word_count: number;\n    page_count?: number;\n    upload_time?: string;\n    content_hash?: string;\n  };\n  error?: string;\n  timestamp: string;\n  confidence_score?: number;\n}\n\nexport interface AnalysisResponse {\n  code: number;\n  message: string;\n  data: {\n    total_files: number;\n    successful_analyses: number;\n    results: DocumentAnalysisResult[];\n    query: string;\n    session_id: string;\n    timestamp: string;\n  };\n}\n\nexport interface SupportedFormatsResponse {\n  code: number;\n  message: string;\n  data: {\n    supported_formats: Record<string, string>;\n    max_file_size_mb: number;\n  };\n}\n\nexport interface DocumentAnalyzerProps {\n  sessionId: string;\n  userId?: string;\n  onAnalysisComplete?: (results: DocumentAnalysisResult[]) => void;\n  className?: string;\n}\n\nexport type AnalysisType = 'general' | 'financial' | 'compliance' | 'risk';\n\nexport interface AnalysisRequest {\n  query: string;\n  session_id: string;\n  analysis_type: AnalysisType;\n  user_id?: string;\n  files: File[];\n}\n\n// API Endpoints\nexport const DOCUMENT_API_ENDPOINTS = {\n  ANALYZE: '/api/v1/document/analyze',\n  SUPPORTED_FORMATS: '/api/v1/document/supported-formats',\n  CLEAR_CACHE: '/api/v1/document/clear-cache',\n  HEALTH: '/health'\n} as const;\n\n// File type validation\nexport const SUPPORTED_FILE_EXTENSIONS = [\n  '.pdf',\n  '.docx', \n  '.doc',\n  '.txt',\n  '.csv',\n  '.json',\n  '.md',\n  '.xml',\n  '.html'\n] as const;\n\nexport const MAX_FILE_SIZE_MB = 50;\nexport const MAX_FILES_PER_REQUEST = 10;
+export interface DocumentAnalysisResult {
+  success: boolean;
+  analysis: string;
+  metadata: {
+    filename: string;
+    file_type: string;
+    file_size: number;
+    word_count: number;
+    page_count?: number;
+    upload_time?: string;
+    content_hash?: string;
+  };
+  error?: string;
+  timestamp: string;
+  confidence_score?: number;
+}
+
+export interface AnalysisResponse {
+  code: number;
+  message: string;
+  data: {
+    total_files: number;
+    successful_analyses: number;
+    results: DocumentAnalysisResult[];
+    query: string;
+    session_id: string;
+    timestamp: string;
+  };
+}
+
+export interface SupportedFormatsResponse {
+  code: number;
+  message: string;
+  data: {
+    supported_formats: Record<string, string>;
+    max_file_size_mb: number;
+  };
+}
+
+export interface DocumentAnalyzerProps {
+  sessionId: string;
+  userId?: string;
+  onAnalysisComplete?: (results: DocumentAnalysisResult[]) => void;
+  className?: string;
+}
+
+export type AnalysisType = 'general' | 'financial' | 'compliance' | 'risk';
+
+export interface AnalysisRequest {
+  query: string;
+  session_id: string;
+  analysis_type: AnalysisType;
+  user_id?: string;
+  files: File[];
+}
+
+// API Endpoints
+export const DOCUMENT_API_ENDPOINTS = {
+  ANALYZE: '/api/v1/document/analyze',
+  SUPPORTED_FORMATS: '/api/v1/document/supported-formats',
+  CLEAR_CACHE: '/api/v1/document/clear-cache',
+  HEALTH: '/health'
+} as const;
+
+// File type validation
+export const SUPPORTED_FILE_EXTENSIONS = [
+  '.pdf',
+  '.docx', 
+  '.doc',
+  '.txt',
+  '.csv',
+  '.json',
+  '.md',
+  '.xml',
+  '.html'
+] as const;
+
+export const MAX_FILE_SIZE_MB = 50;
+export const MAX_FILES_PER_REQUEST = 10;

@@ -1,0 +1,56 @@
+# 添加到现有的 application.yml 中的配置，专门针对原始文档上传功能
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+      enabled: true
+
+# 原始文件处理配置
+raw-file:
+  upload:
+    enabled: true
+    max-file-size: 52428800     # 50MB
+    direct-to-llm: true         # 直接发送给LLM
+    skip-analysis: true         # 跳过后端分析
+    default-mode: raw           # 默认使用原始模式
+
+# 更新 autobots 配置以支持原始文档上传
+autobots:
+  autoagent:
+    # 工具配置
+    tool:
+      # FileTool - 更新为原始上传优先
+      file_tool:
+        desc: "文件工具，专门用于原始文档上传。默认直接将原始文档内容发送给LLM进行处理，不进行任何后端文本提取或分析。这确保了LLM完全负责文档的解读和分析。"
+        params: '{
+          "type": "object",
+          "properties": {
+            "command": {
+              "type": "string",
+              "description": "文件操作类型：upload（原始上传，默认）、get、upload_legacy（传统上传，已废弃）"
+            },
+            "filename": {
+              "type": "string", 
+              "description": "文件名"
+            },
+            "description": {
+              "type": "string",
+              "description": "文件描述，20字左右，upload时必填"
+            },
+            "content": {
+              "type": "string",
+              "description": "文件内容，仅在upload_legacy时使用"
+            },
+            "rawBytes": {
+              "type": "string",
+              "description": "原始文件字节数据的base64编码"
+            }
+          },
+          "required": ["command", "filename"]
+        }'
+        
+      # 确保其他工具不会干扰文档处理
+      code_agent:
+        desc: '这是一个Code interpreter工具，可以写Python代码。注意：文档分析应使用file_tool进行原始上传，让LLM直接处理。'

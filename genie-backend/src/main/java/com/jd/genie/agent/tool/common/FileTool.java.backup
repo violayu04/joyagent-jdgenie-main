@@ -6,12 +6,10 @@ import com.jd.genie.agent.dto.CodeInterpreterResponse;
 import com.jd.genie.agent.dto.File;
 import com.jd.genie.agent.dto.FileRequest;
 import com.jd.genie.agent.dto.FileResponse;
-import com.jd.genie.agent.dto.RawFileRequest;
 import com.jd.genie.agent.tool.BaseTool;
 import com.jd.genie.agent.util.SpringContextHolder;
 import com.jd.genie.agent.util.StringUtil;
 import com.jd.genie.config.GenieConfig;
-import com.jd.genie.service.IRawFileService;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
@@ -23,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Data
+
 public class FileTool implements BaseTool {
     private AgentContext agentContext;
 
@@ -33,13 +32,14 @@ public class FileTool implements BaseTool {
 
     @Override
     public String getDescription() {
-        String desc = "这是一个文件工具，专门用于原始文档上传。默认直接将原始文档内容发送给LLM进行处理，不进行任何后端文本提取或分析。这确保了LLM完全负责文档的解读和分析。";
+        String desc = "这是一个文件工具，可以上传或下载文件";
         GenieConfig genieConfig = SpringContextHolder.getApplicationContext().getBean(GenieConfig.class);
         return genieConfig.getFileToolDesc().isEmpty() ? desc : genieConfig.getFileToolDesc();
     }
 
     @Override
     public Map<String, Object> toParams() {
+
         GenieConfig genieConfig = SpringContextHolder.getApplicationContext().getBean(GenieConfig.class);
         if (!genieConfig.getFileToolDesc().isEmpty()) {
             return genieConfig.getFileToolPamras();
@@ -47,7 +47,7 @@ public class FileTool implements BaseTool {
 
         Map<String, Object> command = new HashMap<>();
         command.put("type", "string");
-        command.put("description", "文件操作类型：upload（原始上传，默认）、get、upload_legacy（传统上传，已废弃）");
+        command.put("description", "文件操作类型：upload、get");
 
         Map<String, Object> fileName = new HashMap<>();
         fileName.put("type", "string");
@@ -59,11 +59,7 @@ public class FileTool implements BaseTool {
 
         Map<String, Object> fileContent = new HashMap<>();
         fileContent.put("type", "string");
-        fileContent.put("description", "文件内容，仅在upload_legacy时使用");
-
-        Map<String, Object> rawBytes = new HashMap<>();
-        rawBytes.put("type", "string");
-        rawBytes.put("description", "原始文件字节数据的base64编码");
+        fileContent.put("description", "文件内容，upload时必填");
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("type", "object");
@@ -72,7 +68,6 @@ public class FileTool implements BaseTool {
         properties.put("filename", fileName);
         properties.put("description", fileDesc);
         properties.put("content", fileContent);
-        properties.put("rawBytes", rawBytes);
         parameters.put("properties", properties);
         parameters.put("required", Arrays.asList("command", "filename"));
 
@@ -83,35 +78,12 @@ public class FileTool implements BaseTool {
     public Object execute(Object input) {
         try {
             Map<String, Object> params = (Map<String, Object>) input;
-            String command = (String) params.getOrDefault("command", "upload"); // 默认使用原始上传
-            
-            log.info("{} FileTool执行命令: {}", agentContext.getRequestId(), command);
-            
-            // 现在upload默认指向原始上传
+            String command = (String) params.getOrDefault("command", "");
+            FileRequest fileRequest = JSON.parseObject(JSON.toJSONString(input), FileRequest.class);
+            fileRequest.setRequestId(agentContext.getRequestId());
             if ("upload".equals(command)) {
-                // 检查是否有rawBytes参数，如果有则使用原始上传
-                if (params.containsKey("rawBytes")) {
-                    RawFileRequest rawFileRequest = JSON.parseObject(JSON.toJSONString(input), RawFileRequest.class);
-                    rawFileRequest.setRequestId(agentContext.getRequestId());
-                    return uploadRawFile(rawFileRequest, true, false);
-                } else {
-                    // 如果没有rawBytes，也默认使用原始上传方式，但给出提示
-                    log.warn("{} 使用upload命令但没有rawBytes，建议使用upload_raw命令进行原始文档上传", agentContext.getRequestId());
-                    FileRequest fileRequest = JSON.parseObject(JSON.toJSONString(input), FileRequest.class);
-                    fileRequest.setRequestId(agentContext.getRequestId());
-                    return uploadFileLegacy(fileRequest, true, false);
-                }
-            } else if ("upload_raw".equals(command)) {
-                RawFileRequest rawFileRequest = JSON.parseObject(JSON.toJSONString(input), RawFileRequest.class);
-                rawFileRequest.setRequestId(agentContext.getRequestId());
-                return uploadRawFile(rawFileRequest, true, false);
-            } else if ("upload_legacy".equals(command)) {
-                FileRequest fileRequest = JSON.parseObject(JSON.toJSONString(input), FileRequest.class);
-                fileRequest.setRequestId(agentContext.getRequestId());
-                return uploadFileLegacy(fileRequest, true, false);
+                return uploadFile(fileRequest, true, false);
             } else if ("get".equals(command)) {
-                FileRequest fileRequest = JSON.parseObject(JSON.toJSONString(input), FileRequest.class);
-                fileRequest.setRequestId(agentContext.getRequestId());
                 return getFile(fileRequest, true);
             }
         } catch (Exception e) {
@@ -120,89 +92,14 @@ public class FileTool implements BaseTool {
         return null;
     }
 
-    /**
-     * 上传原始文件内容直接发送给LLM（不进行任何文本提取或分析）
-     * 后端作为纯粹的管道，将原始字节内容base64编码后发送给LLM
-     * 这是"上传文档功能"的核心实现
-     */
-    public String uploadRawFile(RawFileRequest rawFileRequest, Boolean isNoticeFe, Boolean isInternalFile) {
-        long startTime = System.currentTimeMillis();
-        
-        log.info("{} 开始原始文件上传（不进行分析）: {}", agentContext.getRequestId(), rawFileRequest.getFileName());
-        
-        ApplicationContext applicationContext = SpringContextHolder.getApplicationContext();
-        
-        // 清理文件名中的特殊字符
-        rawFileRequest.setFileName(StringUtil.removeSpecialChars(rawFileRequest.getFileName()));
-        if (rawFileRequest.getFileName().isEmpty()) {
-            String errorMessage = "上传文件失败 文件名为空";
-            log.error("{} {}", agentContext.getRequestId(), errorMessage);
-            return null;
-        }
-
-        try {
-            // 获取原始文件处理服务
-            IRawFileService rawFileService = applicationContext.getBean(IRawFileService.class);
-            
-            // 直接将原始文件内容发送给LLM，不经过任何处理
-            log.info("{} 正在将原始文档直接发送给LLM，跳过所有后端分析", agentContext.getRequestId());
-            String llmResponse = rawFileService.processRawFile(rawFileRequest);
-            
-            if (llmResponse == null) {
-                log.error("{} 发送原始文件给LLM失败", agentContext.getRequestId());
-                return "文件上传失败：无法发送给LLM处理";
-            }
-
-            // 构建前端格式
-            if (isNoticeFe) {
-                Map<String, Object> resultMap = new HashMap<>();
-                resultMap.put("command", "原始文档上传");
-                resultMap.put("fileName", rawFileRequest.getFileName());
-                resultMap.put("llmResponse", llmResponse);
-                resultMap.put("processType", "RAW_UPLOAD_NO_ANALYSIS");
-                
-                String digitalEmployee = agentContext.getToolCollection().getDigitalEmployee(getName());
-                agentContext.getPrinter().send("raw_file", resultMap, digitalEmployee);
-            }
-
-            // 添加文件到上下文
-            File file = File.builder()
-                    .fileName(rawFileRequest.getFileName())
-                    .description(rawFileRequest.getDescription() + " [原始上传-无后端分析]")
-                    .isInternalFile(isInternalFile)
-                    .build();
-            agentContext.getProductFiles().add(file);
-
-            if (!isInternalFile) {
-                agentContext.getTaskProductFiles().add(file);
-            }
-
-            log.info("{} ✅ 原始文件 {} 已直接发送给LLM处理完成，耗时: {}ms（无后端分析）", 
-                    agentContext.getRequestId(), rawFileRequest.getFileName(), 
-                    System.currentTimeMillis() - startTime);
-            
-            return "✅ 文件 " + rawFileRequest.getFileName() + " 已成功上传并直接发送给LLM处理（无后端分析）。LLM分析结果: " + llmResponse;
-
-        } catch (Exception e) {
-            log.error("{} 上传原始文件给LLM失败", agentContext.getRequestId(), e);
-            return "文件上传失败: " + e.getMessage();
-        }
-    }
-
-    /**
-     * 传统上传方法（带分析），已标记为废弃
-     * 保留此方法仅用于兼容性
-     */
-    @Deprecated
-    public String uploadFileLegacy(FileRequest fileRequest, Boolean isNoticeFe, Boolean isInternalFile) {
-        log.warn("{} ⚠️ 使用传统文件上传方法（会进行分析），建议使用原始上传避免后端分析", agentContext.getRequestId());
-        
+    // 上传文件的 API 请求方法
+    public String uploadFile(FileRequest fileRequest, Boolean isNoticeFe, Boolean isInternalFile) {
         long startTime = System.currentTimeMillis();
         OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(300, TimeUnit.SECONDS)
-                .writeTimeout(300, TimeUnit.SECONDS)
-                .callTimeout(300, TimeUnit.SECONDS)
+                .connectTimeout(60, TimeUnit.SECONDS) // 设置连接超时时间为 60 秒
+                .readTimeout(300, TimeUnit.SECONDS)    // 设置读取超时时间为 300 秒
+                .writeTimeout(300, TimeUnit.SECONDS)   // 设置写入超时时间为 300 秒
+                .callTimeout(300, TimeUnit.SECONDS)    // 设置调用超时时间为 300 秒
                 .build();
 
         ApplicationContext applicationContext = SpringContextHolder.getApplicationContext();
@@ -210,14 +107,16 @@ public class FileTool implements BaseTool {
         MediaType mediaType = MediaType.get("application/json; charset=utf-8");
         String url = genieConfig.getCodeInterpreterUrl() + "/v1/file_tool/upload_file";
 
+        // 构建请求体 多轮对话替换requestId为sessionId
         fileRequest.setRequestId(agentContext.getSessionId());
+        // 清理文件名中的特殊字符
         fileRequest.setFileName(StringUtil.removeSpecialChars(fileRequest.getFileName()));
         if (fileRequest.getFileName().isEmpty()) {
             String errorMessage = "上传文件失败 文件名为空";
+
             log.error("{} {}", agentContext.getRequestId(), errorMessage);
             return null;
         }
-        
         RequestBody body = RequestBody.create(JSON.toJSONString(fileRequest), mediaType);
         Request request = new Request.Builder()
                 .url(url)
@@ -234,7 +133,7 @@ public class FileTool implements BaseTool {
             String result = response.body().string();
             FileResponse fileResponse = JSON.parseObject(result, FileResponse.class);
             log.info("{} file tool upload response {}", agentContext.getRequestId(), result);
-            
+            // 构建前端格式
             Map<String, Object> resultMap = new HashMap<>();
             resultMap.put("command", "写入文件");
             List<CodeInterpreterResponse.FileInfo> fileInfo = new ArrayList<>();
@@ -245,27 +144,29 @@ public class FileTool implements BaseTool {
                     .fileSize(fileResponse.getFileSize())
                     .build());
             resultMap.put("fileInfo", fileInfo);
-            
+            // 获取数字人
             String digitalEmployee = agentContext.getToolCollection().getDigitalEmployee(getName());
             log.info("requestId:{} task:{} toolName:{} digitalEmployee:{}", agentContext.getRequestId(),
                     agentContext.getToolCollection().getCurrentTask(), getName(), digitalEmployee);
-            
+            // 添加文件到上下文
             File file = File.builder()
                     .ossUrl(fileResponse.getOssUrl())
                     .domainUrl(fileResponse.getDomainUrl())
                     .fileName(fileRequest.getFileName())
                     .fileSize(fileResponse.getFileSize())
-                    .description(fileRequest.getDescription() + " [传统上传-可能有分析]")
+                    .description(fileRequest.getDescription())
                     .isInternalFile(isInternalFile)
                     .build();
             agentContext.getProductFiles().add(file);
             if (isNoticeFe) {
+                // 内部文件不通知前端
                 agentContext.getPrinter().send("file", resultMap, digitalEmployee);
             }
             if (!isInternalFile) {
+                // 非内部文件，参与交付物
                 agentContext.getTaskProductFiles().add(file);
             }
-            
+            // 返回工具执行结果
             return fileRequest.getFileName() + " 写入到文件链接: " + fileResponse.getOssUrl();
 
         } catch (Exception e) {
@@ -274,25 +175,26 @@ public class FileTool implements BaseTool {
         return null;
     }
 
-    // 保留原有的getFile方法
+    // 获取文件的 API 请求方法
     public String getFile(FileRequest fileRequest, Boolean noticeFe) {
         long startTime = System.currentTimeMillis();
         OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(300, TimeUnit.SECONDS)
-                .writeTimeout(300, TimeUnit.SECONDS)
-                .callTimeout(300, TimeUnit.SECONDS)
+                .connectTimeout(60, TimeUnit.SECONDS) // 设置连接超时时间为 60 秒
+                .readTimeout(300, TimeUnit.SECONDS)    // 设置读取超时时间为 60 秒
+                .writeTimeout(300, TimeUnit.SECONDS)   // 设置写入超时时间为 60 秒
+                .callTimeout(300, TimeUnit.SECONDS)    // 设置调用超时时间为 60 秒
                 .build();
 
         ApplicationContext applicationContext = SpringContextHolder.getApplicationContext();
         GenieConfig genieConfig = applicationContext.getBean(GenieConfig.class);
         MediaType mediaType = MediaType.get("application/json; charset=utf-8");
         String url = genieConfig.getCodeInterpreterUrl() + "/v1/file_tool/get_file";
-        
+        // 构建请求体
         FileRequest getFileRequest = FileRequest.builder()
                 .requestId(agentContext.getRequestId())
                 .fileName(fileRequest.getFileName())
                 .build();
+        // 适配多轮对话
         getFileRequest.setRequestId(agentContext.getSessionId());
         RequestBody body = RequestBody.create(JSON.toJSONString(getFileRequest), mediaType);
         Request request = new Request.Builder()
@@ -310,7 +212,7 @@ public class FileTool implements BaseTool {
             String result = response.body().string();
             FileResponse fileResponse = JSON.parseObject(result, FileResponse.class);
             log.info("{} file tool get response {}", agentContext.getRequestId(), result);
-            
+            // 构建前端格式
             Map<String, Object> resultMap = new HashMap<>();
             resultMap.put("command", "读取文件");
             List<CodeInterpreterResponse.FileInfo> fileInfo = new ArrayList<>();
@@ -321,23 +223,25 @@ public class FileTool implements BaseTool {
                     .fileSize(fileResponse.getFileSize())
                     .build());
             resultMap.put("fileInfo", fileInfo);
-            
+            // 获取数字人
             String digitalEmployee = agentContext.getToolCollection().getDigitalEmployee(getName());
             log.info("requestId:{} task:{} toolName:{} digitalEmployee:{}", agentContext.getRequestId(),
                     agentContext.getToolCollection().getCurrentTask(), getName(), digitalEmployee);
-            
+            // 通知前端
             if (noticeFe) {
                 agentContext.getPrinter().send("file", resultMap, digitalEmployee);
             }
-            
+            // 返回工具执行结果
             String fileContent = getUrlContent(fileResponse.getOssUrl());
             if (Objects.nonNull(fileContent)) {
                 if (fileContent.length() > genieConfig.getFileToolContentTruncateLen()) {
                     fileContent = fileContent.substring(0, genieConfig.getFileToolContentTruncateLen());
                 }
+
                 return "文件内容 " + fileContent;
             }
         } catch (Exception e) {
+
             log.error("{} get file error", agentContext.getRequestId(), e);
         }
         return null;
@@ -345,10 +249,10 @@ public class FileTool implements BaseTool {
 
     private String getUrlContent(String url) {
         OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
-                .writeTimeout(60, TimeUnit.SECONDS)
-                .callTimeout(60, TimeUnit.SECONDS)
+                .connectTimeout(60, TimeUnit.SECONDS) // 设置连接超时时间为 60 秒
+                .readTimeout(60, TimeUnit.SECONDS)    // 设置读取超时时间为 60 秒
+                .writeTimeout(60, TimeUnit.SECONDS)   // 设置写入超时时间为 60 秒
+                .callTimeout(60, TimeUnit.SECONDS)    // 设置调用超时时间为 60 秒
                 .build();
         Request request = new Request.Builder()
                 .url(url)
