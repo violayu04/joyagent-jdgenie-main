@@ -7,15 +7,15 @@
  =========|_|==============|___/=/_/_/_/
  :: Spring Boot ::                (v3.2.2)
 
-2025-08-04T10:03:27.418+08:00  INFO 91697 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : Starting GenieApplication v0.0.1-SNAPSHOT using Java 17.0.8 with PID 91697 (/Users/yuhaiyan/Desktop/joyagent-jdgenie-main/genie-backend/target/genie-backend-0.0.1-SNAPSHOT.jar started by yuhaiyan in /Users/yuhaiyan/Desktop/joyagent-jdgenie-main/genie-backend)
-2025-08-04T10:03:27.420+08:00  INFO 91697 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : No active profile set, falling back to 1 default profile: "default"
-2025-08-04T10:03:27.983+08:00  INFO 91697 --- [genie-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
-2025-08-04T10:03:27.989+08:00  INFO 91697 --- [genie-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2025-08-04T10:03:27.989+08:00  INFO 91697 --- [genie-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.18]
-2025-08-04T10:03:28.009+08:00  INFO 91697 --- [genie-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2025-08-04T10:03:28.010+08:00  INFO 91697 --- [genie-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 538 ms
-2025-08-04T10:03:28.274+08:00  INFO 91697 --- [genie-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
-2025-08-04T10:03:28.284+08:00  INFO 91697 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : Started GenieApplication in 1.195 seconds (process running for 1.448)
-2025-08-04T10:03:28.902+08:00  INFO 91697 --- [genie-backend] [nio-8080-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2025-08-04T10:03:28.902+08:00  INFO 91697 --- [genie-backend] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2025-08-04T10:03:28.903+08:00  INFO 91697 --- [genie-backend] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2025-08-04T17:22:51.991+08:00  INFO 19944 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : Starting GenieApplication v0.0.1-SNAPSHOT using Java 17.0.8 with PID 19944 (/Users/yuhaiyan/Desktop/joyagent-jdgenie-main/genie-backend/target/genie-backend-0.0.1-SNAPSHOT.jar started by yuhaiyan in /Users/yuhaiyan/Desktop/joyagent-jdgenie-main/genie-backend)
+2025-08-04T17:22:51.994+08:00  INFO 19944 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : No active profile set, falling back to 1 default profile: "default"
+2025-08-04T17:22:52.899+08:00  INFO 19944 --- [genie-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-08-04T17:22:52.911+08:00  INFO 19944 --- [genie-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-08-04T17:22:52.911+08:00  INFO 19944 --- [genie-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.18]
+2025-08-04T17:22:52.941+08:00  INFO 19944 --- [genie-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-08-04T17:22:52.942+08:00  INFO 19944 --- [genie-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 886 ms
+2025-08-04T17:22:53.431+08:00  INFO 19944 --- [genie-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2025-08-04T17:22:53.473+08:00  INFO 19944 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : Started GenieApplication in 1.933 seconds (process running for 2.375)
+2025-08-04T17:22:55.290+08:00  INFO 19944 --- [genie-backend] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-08-04T17:22:55.290+08:00  INFO 19944 --- [genie-backend] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-08-04T17:22:55.290+08:00  INFO 19944 --- [genie-backend] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
