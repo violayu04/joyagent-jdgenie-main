@@ -3,8 +3,13 @@ import GeneralInput from "@/components/GeneralInput";
 import Slogn from "@/components/Slogn";
 import ChatView from "@/components/ChatView";
 import { productList, defaultProduct } from "@/utils/constants";
-import { Image } from "antd";
+import { Image, Layout } from "antd";
 import { demoList } from "@/utils/constants";
+import ProtectedRoute from "@/components/Auth/ProtectedRoute";
+import GlobalSidebar from "@/components/GlobalSidebar";
+import UserProfile from "@/components/UserProfile/UserProfile";
+
+const { Content, Header } = Layout;
 
 type HomeProps = Record<string, never>;
 
@@ -15,9 +20,20 @@ const Home: GenieType.FC<HomeProps> = memo(() => {
   });
   const [product, setProduct] = useState(defaultProduct);
   const [videoModalOpen, setVideoModalOpen] = useState();
+  const [selectedSessionId, setSelectedSessionId] = useState<string | undefined>(undefined);
 
   const changeInputInfo = useCallback((info: CHAT.TInputInfo) => {
     setInputInfo(info);
+  }, []);
+
+  const handleSessionSelect = useCallback((sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    setInputInfo({ message: "", deepThink: false });
+  }, []);
+
+  const handleNewSession = useCallback(() => {
+    setSelectedSessionId(undefined);
+    setInputInfo({ message: "", deepThink: false });
   }, []);
 
   const CaseCard = ({ title, description, tag, image, url, videoUrl }: any) => {
@@ -71,7 +87,8 @@ const Home: GenieType.FC<HomeProps> = memo(() => {
   };
 
   const renderContent = () => {
-    if (inputInfo.message.length === 0) {
+    // Show ChatView if user has entered a message OR selected a session
+    if (inputInfo.message.length === 0 && !selectedSessionId) {
       return (
         <div className="pt-[120px] flex flex-col items-center">
           <Slogn />
@@ -112,13 +129,36 @@ const Home: GenieType.FC<HomeProps> = memo(() => {
         </div>
       );
     }
-    return <ChatView inputInfo={inputInfo} product={product} />;
+    return <ChatView inputInfo={inputInfo} product={product} selectedSessionId={selectedSessionId} />;
   };
 
   return (
-    <div className="h-full flex flex-col items-center ">
-      {renderContent()}
-    </div>
+    <ProtectedRoute>
+      <Layout style={{ height: '100vh' }}>
+        {/* Header with user profile */}
+        <Header style={{
+          background: '#fff',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '0 24px'
+        }}>
+          <GlobalSidebar
+            onSessionSelect={handleSessionSelect}
+            onNewSession={handleNewSession}
+            selectedSessionId={selectedSessionId}
+          />
+          <UserProfile />
+        </Header>
+
+        {/* Main Content */}
+        <Content style={{ background: '#fff' }}>
+          <div className="h-full flex flex-col items-center">
+            {renderContent()}
+          </div>
+        </Content>
+      </Layout>
+    </ProtectedRoute>
   );
 });
 

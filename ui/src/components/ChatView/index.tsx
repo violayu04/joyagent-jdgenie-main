@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef, useMemo } from "react";
-import { getUniqId, scrollToTop, ActionViewItemEnum, getSessionId } from "@/utils";
+import { useEffect, useState, useRef } from "react";
+import { getUniqId, scrollToTop, ActionViewItemEnum } from "@/utils";
 import querySSE from "@/utils/querySSE";
 import {  handleTaskData, combineData } from "@/utils/chat";
+import { saveUserMessage } from "@/utils/chatApi";
 import Dialogue from "@/components/Dialogue";
 import GeneralInput from "@/components/GeneralInput";
 import ActionView from "@/components/ActionView";
@@ -14,10 +15,13 @@ import { Modal } from "antd";
 type Props = {
   inputInfo: CHAT.TInputInfo;
   product?: CHAT.Product;
+  selectedSessionId?: string;
 };
 
 const ChatView: GenieType.FC<Props> = (props) => {
-  const { inputInfo: inputInfoProp, product  } = props;
+  const { inputInfo: inputInfoProp, product, selectedSessionId } = props;
+
+  console.log('ChatView rendered with selectedSessionId:', selectedSessionId);
 
   const [chatTitle, setChatTitle] = useState("");
   const [taskList, setTaskList] = useState<MESSAGE.Task[]>([]);
@@ -28,8 +32,142 @@ const ChatView: GenieType.FC<Props> = (props) => {
   const [loading, setLoading] = useState(false);
   const chatRef = useRef<HTMLInputElement>(null);
   const actionViewRef = ActionView.useActionView();
-  const sessionId = useMemo(() => getSessionId(), []);
+  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [modal, contextHolder] = Modal.useModal();
+
+  // Load existing chat data when selectedSessionId changes
+  useEffect(() => {
+    console.log('ChatView useEffect triggered:', { selectedSessionId, sessionId });
+    if (selectedSessionId && selectedSessionId !== sessionId) {
+      console.log('Loading existing session:', selectedSessionId);
+      loadExistingSession(selectedSessionId);
+    } else if (!selectedSessionId && sessionId) {
+      // Starting a new session - clear existing data
+      console.log('Clearing chat data for new session');
+      clearChatData();
+    }
+  }, [selectedSessionId, sessionId]);
+
+  const clearChatData = () => {
+    chatList.current = [];
+    setChatTitle("");
+    setSessionId(undefined);
+    setLoading(false);
+    setShowAction(false);
+    setTaskList([]);
+    setPlan(undefined);
+    setActiveTask(undefined);
+  };
+
+  const loadExistingSession = async (sessionIdToLoad: string) => {
+    try {
+      console.log('Starting to load existing session:', sessionIdToLoad);
+      setLoading(true);
+
+      // 获取会话消息
+      const token = localStorage.getItem('genie_token');
+      console.log('Using token for session load:', token ? 'Token exists' : 'No token');
+
+      const response = await fetch(`/api/sessions/${sessionIdToLoad}/messages`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      console.log('Session messages response status:', response.status);
+      if (response.ok) {
+        const messages = await response.json();
+        console.log('Loaded messages from API:', messages);
+        setSessionId(sessionIdToLoad);
+
+        // 将消息转换为聊天项目
+        const chatItems: CHAT.ChatItem[] = [];
+        let currentUserMessage = '';
+        let messageIndex = 0;
+
+        for (const message of messages) {
+          console.log('Processing message:', message);
+          if (message.role === 'user') {
+            // 如果有之前的用户消息但没有助手回复，先创建一个只有用户消息的聊天项
+            if (currentUserMessage) {
+              const chatItem: CHAT.ChatItem = {
+                query: currentUserMessage,
+                response: "",
+                responseType: "txt",
+                sessionId: sessionIdToLoad,
+                requestId: `loaded-user-${messageIndex}`,
+                loading: false,
+                forceStop: false,
+                tip: "",
+                files: [],
+                multiAgent: { tasks: [] },
+                tasks: []
+              };
+              chatItems.push(chatItem);
+            }
+
+            currentUserMessage = message.content;
+            // 获取会话标题（使用第一条用户消息作为标题）
+            if (chatItems.length === 0) {
+              setChatTitle(message.content);
+            }
+          } else if (message.role === 'assistant' && currentUserMessage) {
+            const chatItem: CHAT.ChatItem = {
+              query: currentUserMessage,
+              response: message.content,
+              responseType: "txt",
+              sessionId: sessionIdToLoad,
+              requestId: `loaded-${message.id}`,
+              loading: false,
+              forceStop: false,
+              tip: "",
+              files: [],
+              multiAgent: { tasks: [] },
+              tasks: []
+            };
+            chatItems.push(chatItem);
+            currentUserMessage = '';
+          }
+          messageIndex++;
+        }
+
+        // 处理最后一条用户消息（如果没有对应的助手回复）
+        if (currentUserMessage) {
+          const chatItem: CHAT.ChatItem = {
+            query: currentUserMessage,
+            response: "",
+            responseType: "txt",
+            sessionId: sessionIdToLoad,
+            requestId: `loaded-final-${messageIndex}`,
+            loading: false,
+            forceStop: false,
+            tip: "",
+            files: [],
+            multiAgent: { tasks: [] },
+            tasks: []
+          };
+          chatItems.push(chatItem);
+        }
+
+        console.log('Created chat items:', chatItems);
+        chatList.current = chatItems;
+      } else {
+        console.error('Failed to load session messages');
+        Modal.error({
+          title: '加载失败',
+          content: '无法加载会话历史消息',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading session:', error);
+      Modal.error({
+        title: '加载失败',
+        content: '网络错误，无法加载会话历史',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const combineCurrentChat = (
     inputInfo: CHAT.TInputInfo,
@@ -53,7 +191,7 @@ const ChatView: GenieType.FC<Props> = (props) => {
     };
   };
 
-  const sendMessage = useMemoizedFn((inputInfo: CHAT.TInputInfo) => {
+  const sendMessage = useMemoizedFn(async (inputInfo: CHAT.TInputInfo) => {
     const {message, deepThink, outputStyle, files} = inputInfo;
     const requestId = getUniqId();
     
@@ -73,14 +211,66 @@ const ChatView: GenieType.FC<Props> = (props) => {
       }
     }
     
-    let currentChat = combineCurrentChat(inputInfo, sessionId, requestId);
+    // 1. 首先创建聊天UI对象并显示
+    let currentChat = combineCurrentChat(inputInfo, sessionId || '', requestId);
     chatList.current =  [...chatList.current, currentChat];
     if (!chatTitle) {
       setChatTitle(message!);
     }
     setLoading(true);
+    
+    // 2. 立即保存用户消息 - 解耦流程的关键步骤
+    // 优先使用selectedSessionId（如果用户选择了现有会话），否则使用当前sessionId
+    let actualSessionId = selectedSessionId || sessionId;
+    console.log('Using sessionId for message:', { selectedSessionId, sessionId, actualSessionId });
+
+    try {
+      const saveResponse = await saveUserMessage(message!, actualSessionId, deepThink, outputStyle);
+      if (saveResponse.success) {
+        actualSessionId = saveResponse.sessionId; // 使用返回的会话ID（可能是新创建的）
+        console.log('User message saved immediately:', saveResponse);
+        
+        // 更新组件的 sessionId 状态
+        setSessionId(actualSessionId);
+        
+        // 更新聊天对象的sessionId
+        currentChat.sessionId = actualSessionId;
+        const newChatList = [...chatList.current];
+        newChatList.splice(newChatList.length - 1, 1, currentChat);
+        chatList.current = newChatList;
+      } else {
+        throw new Error(saveResponse.error || 'Failed to save user message');
+      }
+    } catch (error) {
+      console.error('Failed to save user message:', error);
+      // 更新UI显示错误状态，但保留用户消息在界面上
+      currentChat.loading = false;
+      currentChat.tip = "消息保存失败，请稍后重试";
+      setLoading(false);
+      
+      const newChatList = [...chatList.current];
+      newChatList.splice(newChatList.length - 1, 1, currentChat);
+      chatList.current = newChatList;
+      
+      // 提供更详细的错误信息
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      console.error('Save user message error details:', {
+        error: errorMessage,
+        token: localStorage.getItem('genie_token') ? 'Present' : 'Missing',
+        message: message,
+        sessionId: actualSessionId
+      });
+      
+      Modal.error({
+        title: '消息保存失败',
+        content: `无法保存您的消息到会话历史：${errorMessage}`,
+      });
+      return;
+    }
+    
+    // 3. 调用AI处理（与消息保存解耦）
     const params = {
-      sessionId: sessionId,
+      sessionId: actualSessionId, // 使用实际的会话ID
       requestId: requestId,
       query: contextualQuery, // Send contextual query to LLM
       deepThink: deepThink ? 1 : 0,
@@ -136,7 +326,15 @@ const ChatView: GenieType.FC<Props> = (props) => {
     };
 
     const handleError = (error: unknown) => {
-      throw error;
+      console.error('AI processing error:', error);
+      // 用户消息已经保存，只需要更新UI状态
+      currentChat.loading = false;
+      currentChat.tip = "AI 处理失败，但您的消息已保存到会话历史中";
+      setLoading(false);
+      
+      const newChatList = [...chatList.current];
+      newChatList.splice(newChatList.length - 1, 1, currentChat);
+      chatList.current = newChatList;
     };
 
     const handleClose = () => {
@@ -177,7 +375,9 @@ const ChatView: GenieType.FC<Props> = (props) => {
 
   useEffect(() => {
     if (inputInfoProp.message?.length !== 0) {
-      sendMessage(inputInfoProp);
+      sendMessage(inputInfoProp).catch(error => {
+        console.error('Send message failed:', error);
+      });
     }
   }, [inputInfoProp, sendMessage]);
 
@@ -216,16 +416,20 @@ const ChatView: GenieType.FC<Props> = (props) => {
           })}
         </div>
         <GeneralInput
-          placeholder={loading ? "任务进行中" : "希望 Genie 为你做哪些任务呢？"}
+          placeholder={loading ? "任务进行中" : "希望上海银行超级智能体为你做哪些任务呢？"}
           showBtn={false}
           size="medium"
           disabled={loading}
           product={product}
           // 多轮问答也不支持切换deepThink，使用传进来的
-          send={(info) => sendMessage({
-            ...info,
-            deepThink: inputInfoProp.deepThink
-          })}
+          send={(info) => {
+            sendMessage({
+              ...info,
+              deepThink: inputInfoProp.deepThink
+            }).catch(error => {
+              console.error('Send message failed:', error);
+            });
+          }}
         />
       </div>
       {contextHolder}

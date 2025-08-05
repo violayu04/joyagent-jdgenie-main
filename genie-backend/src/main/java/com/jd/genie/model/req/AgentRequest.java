@@ -19,6 +19,7 @@ import java.util.Map;
 @AllArgsConstructor
 public class AgentRequest {
     private String requestId;
+    private String sessionId;  // 添加会话ID字段
     private String erp;
     private String query;
     private Integer agentType;

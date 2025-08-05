@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Chat API</title>
+</head>
+<body>
+    <h1>Chat API Debug</h1>
+    <p>Open developer console and run the test functions</p>
+    
+    <script>
+        // Test login
+        async function testLogin() {
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'testuser',
+                        password: 'testpass'
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Login response:', data);
+                
+                if (data.token) {
+                    localStorage.setItem('genie_token', data.token);
+                    localStorage.setItem('genie_user', JSON.stringify({
+                        username: data.username,
+                        email: data.email
+                    }));
+                    console.log('Token saved to localStorage');
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('Login failed:', error);
+            }
+        }
+        
+        // Test save user message
+        async function testSaveMessage() {
+            const token = localStorage.getItem('genie_token');
+            if (!token) {
+                console.error('No token found. Please run testLogin() first.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:3000/web/api/v1/chat/saveUserMessage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        requestId: 'debug-' + Date.now(),
+                        query: 'Hello, this is a debug test message',
+                        deepThink: 0
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Save message response:', data);
+                return data;
+            } catch (error) {
+                console.error('Save message failed:', error);
+                console.log('Token present:', !!token);
+                console.log('Token value:', token);
+            }
+        }
+        
+        // Auto-run tests
+        console.log('Available functions:');
+        console.log('- testLogin(): Test user login');
+        console.log('- testSaveMessage(): Test save user message (requires login first)');
+        console.log('- Run both: testLogin().then(() => testSaveMessage())');
+    </script>
+</body>
+</html>

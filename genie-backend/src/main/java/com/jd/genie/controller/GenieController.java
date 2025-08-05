@@ -5,7 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.jd.genie.agent.agent.AgentContext;
 import com.jd.genie.agent.printer.Printer;
-import com.jd.genie.agent.printer.SSEPrinter;
+import com.jd.genie.agent.printer.ChatSessionSSEPrinter;
 import com.jd.genie.agent.tool.ToolCollection;
 import com.jd.genie.agent.tool.common.CodeInterpreterTool;
 import com.jd.genie.agent.tool.common.DeepSearchTool;
@@ -17,14 +17,21 @@ import com.jd.genie.agent.util.ThreadUtil;
 import com.jd.genie.config.GenieConfig;
 import com.jd.genie.model.req.AgentRequest;
 import com.jd.genie.model.req.GptQueryReq;
+import com.jd.genie.entity.ChatSession;
+import com.jd.genie.entity.User;
 import com.jd.genie.service.AgentHandlerService;
+import com.jd.genie.service.ChatSessionService;
 import com.jd.genie.service.IGptProcessService;
+import com.jd.genie.service.UserService;
 import com.jd.genie.service.impl.AgentHandlerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,7 +39,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.UnsupportedEncodingException;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -51,6 +57,10 @@ public class GenieController {
     private AgentHandlerFactory agentHandlerFactory;
     @Autowired
     private IGptProcessService gptProcessService;
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private ChatSessionService chatSessionService;
 
     /**
      * 开启SSE心跳
@@ -103,13 +113,30 @@ public class GenieController {
     /**
      * 执行智能体调度
      * @param request
+     * @param authentication
      * @return
      * @throws UnsupportedEncodingException
      */
     @PostMapping("/AutoAgent")
-    public SseEmitter AutoAgent(@RequestBody AgentRequest request) throws UnsupportedEncodingException {
+    public SseEmitter AutoAgent(@RequestBody AgentRequest request, Authentication authentication) throws UnsupportedEncodingException {
 
         log.info("{} auto agent request: {}", request.getRequestId(), JSON.toJSONString(request));
+
+        // 获取当前用户
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        User currentUser = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+
+        // 验证会话存在性（用户消息应已通过单独API保存）
+        String sessionId = request.getSessionId();
+        if (sessionId == null || sessionId.trim().isEmpty()) {
+            throw new RuntimeException("会话ID不能为空，请先保存用户消息");
+        }
+        
+        ChatSession chatSession = chatSessionService.getSessionByIdAndUser(sessionId, currentUser).orElse(null);
+        if (chatSession == null) {
+            throw new RuntimeException("会话不存在或无权限访问");
+        }
 
         Long AUTO_AGENT_SSE_TIMEOUT = 60 * 60 * 1000L;
 
@@ -123,10 +150,10 @@ public class GenieController {
         // 执行调度引擎
         ThreadUtil.execute(() -> {
             try {
-                Printer printer = new SSEPrinter(emitter, request, request.getAgentType());
+                Printer printer = new ChatSessionSSEPrinter(emitter, request, request.getAgentType(), chatSessionService);
                 AgentContext agentContext = AgentContext.builder()
                         .requestId(request.getRequestId())
-                        .sessionId(request.getRequestId())
+                        .sessionId(request.getSessionId())  // 使用实际的会话ID
                         .printer(printer)
                         .query(request.getQuery())
                         .task("")
@@ -245,6 +272,81 @@ public class GenieController {
         }
 
         return toolCollection;
+    }
+
+    /**
+     * 从查询文本中提取标题
+     * @param query
+     * @return
+     */
+    private String extractTitleFromQuery(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return "新对话";
+        }
+        
+        // 取前30个字符作为标题，如果超过30个字符则截断并加省略号
+        String title = query.trim();
+        if (title.length() > 30) {
+            title = title.substring(0, 30) + "...";
+        }
+        
+        return title;
+    }
+
+    /**
+     * 立即保存用户消息到会话历史
+     * @param request
+     * @param authentication
+     * @return
+     */
+    @PostMapping("/web/api/v1/chat/saveUserMessage")
+    public ResponseEntity<Map<String, Object>> saveUserMessage(@RequestBody AgentRequest request, Authentication authentication) {
+        log.info("{} save user message request: sessionId={}, query={}", request.getRequestId(), request.getSessionId(), request.getQuery());
+
+        try {
+            // 获取当前用户
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            User currentUser = userService.findByUsername(userDetails.getUsername())
+                    .orElseThrow(() -> new RuntimeException("用户不存在"));
+
+            // 处理会话
+            ChatSession chatSession = null;
+            String sessionId = request.getSessionId();
+            
+            if (sessionId != null && !sessionId.trim().isEmpty()) {
+                // 验证会话是否属于当前用户
+                chatSession = chatSessionService.getSessionByIdAndUser(sessionId, currentUser).orElse(null);
+                if (chatSession == null) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("success", false);
+                    errorResponse.put("error", "会话不存在或无权限访问");
+                    return ResponseEntity.badRequest().body(errorResponse);
+                }
+            } else {
+                // 创建新会话
+                String title = extractTitleFromQuery(request.getQuery());
+                chatSession = chatSessionService.createSession(currentUser, title);
+                sessionId = chatSession.getSessionId();
+            }
+
+            // 保存用户消息
+            int messageOrder = chatSessionService.getSessionMessages(chatSession).size();
+            chatSessionService.saveMessage(chatSession, "user", request.getQuery(), messageOrder);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("sessionId", sessionId);
+            response.put("message", "用户消息已保存");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("{} save user message error", request.getRequestId(), e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
     }
 
     /**

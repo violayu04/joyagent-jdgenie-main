@@ -1,0 +1,71 @@
+.global-sidebar-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1f2937;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.global-sidebar-trigger:hover {
+  background-color: #f3f4f6;
+  color: #1890ff;
+}
+
+.global-sidebar-trigger:focus {
+  background-color: #f3f4f6;
+  color: #1890ff;
+}
+
+.global-sidebar-drawer .ant-drawer-header {
+  border-bottom: 1px solid #e8e8e8;
+  padding: 16px 24px;
+}
+
+.global-sidebar-drawer .ant-drawer-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.global-sidebar-drawer .ant-drawer-body {
+  height: calc(100% - 55px);
+  overflow: hidden;
+}
+
+.global-sidebar-drawer .session-history {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.global-sidebar-drawer .session-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.global-sidebar-drawer .session-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .global-sidebar-drawer {
+    width: 280px !important;
+  }
+  
+  .global-sidebar-trigger {
+    padding: 8px 12px;
+  }
+}
+
+/* 确保在小屏幕上侧边栏不会太宽 */
+@media (max-width: 480px) {
+  .global-sidebar-drawer {
+    width: 90vw !important;
+  }
+}

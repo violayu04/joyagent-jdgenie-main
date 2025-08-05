@@ -508,7 +508,7 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-start space-x-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></span>
-                      <span>此文档内容已作为 Genie LLM 的对话上下文</span>
+                      <span>此文档内容已作为上海银行超级智能体的对话上下文</span>
                     </div>
                     <div className="flex items-start space-x-2">
                       <span className="w-2 h-2 bg-green-500 rounded-full mt-1.5 flex-shrink-0"></span>
