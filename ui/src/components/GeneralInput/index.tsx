@@ -204,7 +204,7 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
     }
   };
 
-  const pressEnter: React.KeyboardEventHandler<HTMLTextAreaElement> = () => {
+  const pressEnter: React.KeyboardEventHandler<HTMLTextAreaElement> = (event) => {
     if (tempData.current.compositing) return;
     
     if (tempData.current.cmdPress) {
@@ -224,6 +224,9 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
     }
     
     if (disabled) return;
+    
+    // Prevent default behavior to avoid adding new line
+    event.preventDefault();
     sendMessage();
   };
 
@@ -248,7 +251,10 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
       files: files.length > 0 ? files : undefined,
     });
     
-    setQuestion("");
+    // Clear the input field after a small delay to ensure DOM is updated
+    setTimeout(() => {
+      setQuestion("");
+    }, 0);
     // Keep files for context in subsequent messages
   };
 

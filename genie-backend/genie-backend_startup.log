@@ -7,61 +7,33 @@
  =========|_|==============|___/=/_/_/_/
  :: Spring Boot ::                (v3.2.2)
 
-2025-08-06T09:06:36.902+08:00  INFO 35496 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : Starting GenieApplication v0.0.1-SNAPSHOT using Java 17.0.8 with PID 35496 (/Users/yuhaiyan/Desktop/joyagent-jdgenie-main/genie-backend/target/genie-backend-0.0.1-SNAPSHOT.jar started by yuhaiyan in /Users/yuhaiyan/Desktop/joyagent-jdgenie-main/genie-backend)
-2025-08-06T09:06:36.904+08:00  INFO 35496 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : No active profile set, falling back to 1 default profile: "default"
-2025-08-06T09:06:37.377+08:00  INFO 35496 --- [genie-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2025-08-06T09:06:37.410+08:00  INFO 35496 --- [genie-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 28 ms. Found 3 JPA repository interfaces.
-2025-08-06T09:06:37.750+08:00  INFO 35496 --- [genie-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
-2025-08-06T09:06:37.757+08:00  INFO 35496 --- [genie-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2025-08-06T09:06:37.757+08:00  INFO 35496 --- [genie-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.18]
-2025-08-06T09:06:37.778+08:00  INFO 35496 --- [genie-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2025-08-06T09:06:37.778+08:00  INFO 35496 --- [genie-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 823 ms
-2025-08-06T09:06:37.796+08:00  INFO 35496 --- [genie-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2025-08-06T09:06:37.944+08:00  INFO 35496 --- [genie-backend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:file:./data/geniedb user=SA
-2025-08-06T09:06:37.944+08:00  INFO 35496 --- [genie-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2025-08-06T09:06:37.949+08:00  INFO 35496 --- [genie-backend] [           main] o.s.b.a.h2.H2ConsoleAutoConfiguration    : H2 console available at '/h2-console'. Database available at 'jdbc:h2:file:./data/geniedb'
-2025-08-06T09:06:38.006+08:00  INFO 35496 --- [genie-backend] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
-2025-08-06T09:06:38.047+08:00  INFO 35496 --- [genie-backend] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.1.Final
-2025-08-06T09:06:38.071+08:00  INFO 35496 --- [genie-backend] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
-2025-08-06T09:06:38.185+08:00  INFO 35496 --- [genie-backend] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2025-08-06T09:06:38.214+08:00  WARN 35496 --- [genie-backend] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2025-08-06T09:06:38.687+08:00  INFO 35496 --- [genie-backend] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2025-08-06T09:06:38.721+08:00  INFO 35496 --- [genie-backend] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2025-08-06T09:06:39.142+08:00  WARN 35496 --- [genie-backend] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2025-08-06T09:06:39.288+08:00  INFO 35496 --- [genie-backend] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@4feea86f, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@6a9c848, org.springframework.security.web.context.SecurityContextHolderFilter@374712f8, org.springframework.security.web.header.HeaderWriterFilter@54b313d6, org.springframework.web.filter.CorsFilter@498cf1dc, org.springframework.security.web.authentication.logout.LogoutFilter@475b796d, com.jd.genie.security.JwtAuthenticationFilter@795949fb, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@125ed27, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@2dedde74, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@b9c8678, org.springframework.security.web.session.SessionManagementFilter@4b19ee18, org.springframework.security.web.access.ExceptionTranslationFilter@647d3279, org.springframework.security.web.access.intercept.AuthorizationFilter@7976d382]
-2025-08-06T09:06:39.425+08:00  INFO 35496 --- [genie-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
-2025-08-06T09:06:39.436+08:00  INFO 35496 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : Started GenieApplication in 2.838 seconds (process running for 3.114)
-2025-08-06T09:06:42.461+08:00  INFO 35496 --- [genie-backend] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2025-08-06T09:06:42.461+08:00  INFO 35496 --- [genie-backend] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2025-08-06T09:06:42.461+08:00  INFO 35496 --- [genie-backend] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
-Hibernate: 
-    select
-        u1_0.id,
-        u1_0.created_at,
-        u1_0.email,
-        u1_0.is_active,
-        u1_0.last_login,
-        u1_0.password,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
-Hibernate: 
-    select
-        u1_0.id,
-        u1_0.created_at,
-        u1_0.email,
-        u1_0.is_active,
-        u1_0.last_login,
-        u1_0.password,
-        u1_0.updated_at,
-        u1_0.username 
-    from
-        users u1_0 
-    where
-        u1_0.username=?
+2025-08-06T09:24:35.246+08:00  INFO 39061 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : Starting GenieApplication v0.0.1-SNAPSHOT using Java 17.0.8 with PID 39061 (/Users/yuhaiyan/Desktop/joyagent-jdgenie-main/genie-backend/target/genie-backend-0.0.1-SNAPSHOT.jar started by yuhaiyan in /Users/yuhaiyan/Desktop/joyagent-jdgenie-main/genie-backend)
+2025-08-06T09:24:35.248+08:00  INFO 39061 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : No active profile set, falling back to 1 default profile: "default"
+2025-08-06T09:24:35.720+08:00  INFO 39061 --- [genie-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-08-06T09:24:35.754+08:00  INFO 39061 --- [genie-backend] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 29 ms. Found 3 JPA repository interfaces.
+2025-08-06T09:24:36.022+08:00  INFO 39061 --- [genie-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-08-06T09:24:36.027+08:00  INFO 39061 --- [genie-backend] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-08-06T09:24:36.027+08:00  INFO 39061 --- [genie-backend] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.18]
+2025-08-06T09:24:36.042+08:00  INFO 39061 --- [genie-backend] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-08-06T09:24:36.043+08:00  INFO 39061 --- [genie-backend] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 745 ms
+2025-08-06T09:24:36.061+08:00  INFO 39061 --- [genie-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-08-06T09:24:36.184+08:00  INFO 39061 --- [genie-backend] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:file:./data/geniedb user=SA
+2025-08-06T09:24:36.185+08:00  INFO 39061 --- [genie-backend] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-08-06T09:24:36.190+08:00  INFO 39061 --- [genie-backend] [           main] o.s.b.a.h2.H2ConsoleAutoConfiguration    : H2 console available at '/h2-console'. Database available at 'jdbc:h2:file:./data/geniedb'
+2025-08-06T09:24:36.235+08:00  INFO 39061 --- [genie-backend] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-08-06T09:24:36.266+08:00  INFO 39061 --- [genie-backend] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.4.1.Final
+2025-08-06T09:24:36.285+08:00  INFO 39061 --- [genie-backend] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-08-06T09:24:36.376+08:00  INFO 39061 --- [genie-backend] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-08-06T09:24:36.396+08:00  WARN 39061 --- [genie-backend] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2025-08-06T09:24:36.801+08:00  INFO 39061 --- [genie-backend] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-08-06T09:24:36.824+08:00  INFO 39061 --- [genie-backend] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-08-06T09:24:37.264+08:00  WARN 39061 --- [genie-backend] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2025-08-06T09:24:37.381+08:00  INFO 39061 --- [genie-backend] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with [org.springframework.security.web.session.DisableEncodeUrlFilter@498cf1dc, org.springframework.security.web.context.request.async.WebAsyncManagerIntegrationFilter@b9c8678, org.springframework.security.web.context.SecurityContextHolderFilter@125ed27, org.springframework.security.web.header.HeaderWriterFilter@2b20caed, org.springframework.web.filter.CorsFilter@318beab4, org.springframework.security.web.authentication.logout.LogoutFilter@69c7fb94, com.jd.genie.security.JwtAuthenticationFilter@281028ce, org.springframework.security.web.savedrequest.RequestCacheAwareFilter@22b2d9e3, org.springframework.security.web.servletapi.SecurityContextHolderAwareRequestFilter@43600de0, org.springframework.security.web.authentication.AnonymousAuthenticationFilter@79a88f45, org.springframework.security.web.session.SessionManagementFilter@6259d7a0, org.springframework.security.web.access.ExceptionTranslationFilter@54b313d6, org.springframework.security.web.access.intercept.AuthorizationFilter@4feea86f]
+2025-08-06T09:24:37.479+08:00  INFO 39061 --- [genie-backend] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path ''
+2025-08-06T09:24:37.487+08:00  INFO 39061 --- [genie-backend] [           main] com.jd.genie.GenieApplication            : Started GenieApplication in 2.566 seconds (process running for 2.834)
+2025-08-06T09:24:38.786+08:00  INFO 39061 --- [genie-backend] [nio-8080-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2025-08-06T09:24:38.786+08:00  INFO 39061 --- [genie-backend] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2025-08-06T09:24:38.786+08:00  INFO 39061 --- [genie-backend] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 0 ms
 Hibernate: 
     select
         u1_0.id,
@@ -148,6 +120,30 @@ Hibernate:
         m1_0.session_id=?
 Hibernate: 
     select
+        m1_0.session_id,
+        m1_0.id,
+        m1_0.content,
+        m1_0.created_at,
+        m1_0.message_order,
+        m1_0.role 
+    from
+        chat_messages m1_0 
+    where
+        m1_0.session_id=?
+Hibernate: 
+    select
+        m1_0.session_id,
+        m1_0.id,
+        m1_0.content,
+        m1_0.created_at,
+        m1_0.message_order,
+        m1_0.role 
+    from
+        chat_messages m1_0 
+    where
+        m1_0.session_id=?
+Hibernate: 
+    select
         u1_0.id,
         u1_0.created_at,
         u1_0.email,
@@ -189,6 +185,20 @@ Hibernate:
         cs1_0.session_id=? 
         and cs1_0.user_id=?
 Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
     update
         chat_sessions 
     set
@@ -202,6 +212,659 @@ Hibernate:
         id=?
 Hibernate: 
     select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-08-06T09:25:10.307+08:00  INFO 39061 --- [genie-backend] [io-8080-exec-10] c.jd.genie.controller.GenieController    : 1754443510278-2309 save user message request: sessionId=null, query=1
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    insert 
+    into
+        chat_sessions
+        (created_at, is_active, session_id, title, updated_at, user_id, id) 
+    values
+        (?, ?, ?, ?, ?, ?, default)
+Hibernate: 
+    select
+        cm1_0.id,
+        cm1_0.session_id,
+        cm1_0.content,
+        cm1_0.created_at,
+        cm1_0.message_order,
+        cm1_0.role 
+    from
+        chat_messages cm1_0 
+    where
+        cm1_0.session_id=? 
+    order by
+        cm1_0.message_order
+Hibernate: 
+    insert 
+    into
+        chat_messages
+        (session_id, content, created_at, message_order, role, id) 
+    values
+        (?, ?, ?, ?, ?, default)
+Hibernate: 
+    update
+        chat_sessions 
+    set
+        created_at=?,
+        is_active=?,
+        session_id=?,
+        title=?,
+        updated_at=?,
+        user_id=? 
+    where
+        id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-08-06T09:25:12.969+08:00  INFO 39061 --- [genie-backend] [nio-8080-exec-8] c.jd.genie.controller.GenieController    : 1754443512963-8465 save user message request: sessionId=ccf34b66-c412-496b-83a4-9489fb6a4fed, query=2
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
+    select
+        cm1_0.id,
+        cm1_0.session_id,
+        cm1_0.content,
+        cm1_0.created_at,
+        cm1_0.message_order,
+        cm1_0.role 
+    from
+        chat_messages cm1_0 
+    where
+        cm1_0.session_id=? 
+    order by
+        cm1_0.message_order
+Hibernate: 
+    insert 
+    into
+        chat_messages
+        (session_id, content, created_at, message_order, role, id) 
+    values
+        (?, ?, ?, ?, ?, default)
+Hibernate: 
+    update
+        chat_sessions 
+    set
+        created_at=?,
+        is_active=?,
+        session_id=?,
+        title=?,
+        updated_at=?,
+        user_id=? 
+    where
+        id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-08-06T09:25:13.915+08:00  INFO 39061 --- [genie-backend] [nio-8080-exec-6] c.jd.genie.controller.GenieController    : 1754443513910-3074 save user message request: sessionId=ccf34b66-c412-496b-83a4-9489fb6a4fed, query=3
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
+    select
+        cm1_0.id,
+        cm1_0.session_id,
+        cm1_0.content,
+        cm1_0.created_at,
+        cm1_0.message_order,
+        cm1_0.role 
+    from
+        chat_messages cm1_0 
+    where
+        cm1_0.session_id=? 
+    order by
+        cm1_0.message_order
+Hibernate: 
+    insert 
+    into
+        chat_messages
+        (session_id, content, created_at, message_order, role, id) 
+    values
+        (?, ?, ?, ?, ?, default)
+Hibernate: 
+    update
+        chat_sessions 
+    set
+        created_at=?,
+        is_active=?,
+        session_id=?,
+        title=?,
+        updated_at=?,
+        user_id=? 
+    where
+        id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-08-06T09:25:14.578+08:00  INFO 39061 --- [genie-backend] [nio-8080-exec-7] c.jd.genie.controller.GenieController    : 1754443514572-2813 save user message request: sessionId=ccf34b66-c412-496b-83a4-9489fb6a4fed, query=4
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
+    select
+        cm1_0.id,
+        cm1_0.session_id,
+        cm1_0.content,
+        cm1_0.created_at,
+        cm1_0.message_order,
+        cm1_0.role 
+    from
+        chat_messages cm1_0 
+    where
+        cm1_0.session_id=? 
+    order by
+        cm1_0.message_order
+Hibernate: 
+    insert 
+    into
+        chat_messages
+        (session_id, content, created_at, message_order, role, id) 
+    values
+        (?, ?, ?, ?, ?, default)
+Hibernate: 
+    update
+        chat_sessions 
+    set
+        created_at=?,
+        is_active=?,
+        session_id=?,
+        title=?,
+        updated_at=?,
+        user_id=? 
+    where
+        id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-08-06T09:25:15.784+08:00  INFO 39061 --- [genie-backend] [nio-8080-exec-4] c.jd.genie.controller.GenieController    : 1754443515779-5080 save user message request: sessionId=ccf34b66-c412-496b-83a4-9489fb6a4fed, query=5
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
+    select
+        cm1_0.id,
+        cm1_0.session_id,
+        cm1_0.content,
+        cm1_0.created_at,
+        cm1_0.message_order,
+        cm1_0.role 
+    from
+        chat_messages cm1_0 
+    where
+        cm1_0.session_id=? 
+    order by
+        cm1_0.message_order
+Hibernate: 
+    insert 
+    into
+        chat_messages
+        (session_id, content, created_at, message_order, role, id) 
+    values
+        (?, ?, ?, ?, ?, default)
+Hibernate: 
+    update
+        chat_sessions 
+    set
+        created_at=?,
+        is_active=?,
+        session_id=?,
+        title=?,
+        updated_at=?,
+        user_id=? 
+    where
+        id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-08-06T09:25:20.424+08:00  INFO 39061 --- [genie-backend] [nio-8080-exec-8] c.jd.genie.controller.GenieController    : 1754443520418-9145 save user message request: sessionId=ccf34b66-c412-496b-83a4-9489fb6a4fed, query=2
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
+    select
+        cm1_0.id,
+        cm1_0.session_id,
+        cm1_0.content,
+        cm1_0.created_at,
+        cm1_0.message_order,
+        cm1_0.role 
+    from
+        chat_messages cm1_0 
+    where
+        cm1_0.session_id=? 
+    order by
+        cm1_0.message_order
+Hibernate: 
+    insert 
+    into
+        chat_messages
+        (session_id, content, created_at, message_order, role, id) 
+    values
+        (?, ?, ?, ?, ?, default)
+Hibernate: 
+    update
+        chat_sessions 
+    set
+        created_at=?,
+        is_active=?,
+        session_id=?,
+        title=?,
+        updated_at=?,
+        user_id=? 
+    where
+        id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+2025-08-06T09:25:22.504+08:00  INFO 39061 --- [genie-backend] [nio-8080-exec-4] c.jd.genie.controller.GenieController    : 1754443522490-6249 save user message request: sessionId=ccf34b66-c412-496b-83a4-9489fb6a4fed, query=3
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
+    select
+        cm1_0.id,
+        cm1_0.session_id,
+        cm1_0.content,
+        cm1_0.created_at,
+        cm1_0.message_order,
+        cm1_0.role 
+    from
+        chat_messages cm1_0 
+    where
+        cm1_0.session_id=? 
+    order by
+        cm1_0.message_order
+Hibernate: 
+    insert 
+    into
+        chat_messages
+        (session_id, content, created_at, message_order, role, id) 
+    values
+        (?, ?, ?, ?, ?, default)
+Hibernate: 
+    update
+        chat_sessions 
+    set
+        created_at=?,
+        is_active=?,
+        session_id=?,
+        title=?,
+        updated_at=?,
+        user_id=? 
+    where
+        id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
+    select
+        cm1_0.id,
+        cm1_0.session_id,
+        cm1_0.content,
+        cm1_0.created_at,
+        cm1_0.message_order,
+        cm1_0.role 
+    from
+        chat_messages cm1_0 
+    where
+        cm1_0.session_id=? 
+    order by
+        cm1_0.message_order
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.user_id=? 
+        and cs1_0.is_active 
+    order by
+        cs1_0.updated_at desc
+Hibernate: 
+    select
         m1_0.session_id,
         m1_0.id,
         m1_0.content,
@@ -212,3 +875,207 @@ Hibernate:
         chat_messages m1_0 
     where
         m1_0.session_id=?
+Hibernate: 
+    select
+        m1_0.session_id,
+        m1_0.id,
+        m1_0.content,
+        m1_0.created_at,
+        m1_0.message_order,
+        m1_0.role 
+    from
+        chat_messages m1_0 
+    where
+        m1_0.session_id=?
+Hibernate: 
+    select
+        m1_0.session_id,
+        m1_0.id,
+        m1_0.content,
+        m1_0.created_at,
+        m1_0.message_order,
+        m1_0.role 
+    from
+        chat_messages m1_0 
+    where
+        m1_0.session_id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
+    select
+        cm1_0.id,
+        cm1_0.session_id,
+        cm1_0.content,
+        cm1_0.created_at,
+        cm1_0.message_order,
+        cm1_0.role 
+    from
+        chat_messages cm1_0 
+    where
+        cm1_0.session_id=? 
+    order by
+        cm1_0.message_order
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
+    update
+        chat_sessions 
+    set
+        created_at=?,
+        is_active=?,
+        session_id=?,
+        title=?,
+        updated_at=?,
+        user_id=? 
+    where
+        id=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        u1_0.id,
+        u1_0.created_at,
+        u1_0.email,
+        u1_0.is_active,
+        u1_0.last_login,
+        u1_0.password,
+        u1_0.updated_at,
+        u1_0.username 
+    from
+        users u1_0 
+    where
+        u1_0.username=?
+Hibernate: 
+    select
+        cs1_0.id,
+        cs1_0.created_at,
+        cs1_0.is_active,
+        cs1_0.session_id,
+        cs1_0.title,
+        cs1_0.updated_at,
+        cs1_0.user_id 
+    from
+        chat_sessions cs1_0 
+    where
+        cs1_0.session_id=? 
+        and cs1_0.user_id=?
+Hibernate: 
+    select
+        cm1_0.id,
+        cm1_0.session_id,
+        cm1_0.content,
+        cm1_0.created_at,
+        cm1_0.message_order,
+        cm1_0.role 
+    from
+        chat_messages cm1_0 
+    where
+        cm1_0.session_id=? 
+    order by
+        cm1_0.message_order

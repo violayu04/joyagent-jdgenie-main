@@ -41,12 +41,13 @@ const ChatView: GenieType.FC<Props> = (props) => {
     if (selectedSessionId && selectedSessionId !== sessionId) {
       console.log('Loading existing session:', selectedSessionId);
       loadExistingSession(selectedSessionId);
-    } else if (!selectedSessionId && sessionId) {
-      // Starting a new session - clear existing data
+    } else if (!selectedSessionId && sessionId && selectedSessionId !== undefined) {
+      // Only clear if we explicitly switched to a new session (selectedSessionId was set to undefined)
+      // Don't clear if we're just starting up or continuing in new session mode
       console.log('Clearing chat data for new session');
       clearChatData();
     }
-  }, [selectedSessionId, sessionId]);
+  }, [selectedSessionId]);
 
   const clearChatData = () => {
     chatList.current = [];

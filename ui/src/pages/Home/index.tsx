@@ -21,19 +21,25 @@ const Home: GenieType.FC<HomeProps> = memo(() => {
   const [product, setProduct] = useState(defaultProduct);
   const [videoModalOpen, setVideoModalOpen] = useState();
   const [selectedSessionId, setSelectedSessionId] = useState<string | undefined>(undefined);
+  const [hasStartedChat, setHasStartedChat] = useState(false);
 
   const changeInputInfo = useCallback((info: CHAT.TInputInfo) => {
     setInputInfo(info);
+    if (info.message.length > 0) {
+      setHasStartedChat(true);
+    }
   }, []);
 
   const handleSessionSelect = useCallback((sessionId: string) => {
     setSelectedSessionId(sessionId);
     setInputInfo({ message: "", deepThink: false });
+    setHasStartedChat(true);
   }, []);
 
   const handleNewSession = useCallback(() => {
     setSelectedSessionId(undefined);
     setInputInfo({ message: "", deepThink: false });
+    setHasStartedChat(false);
   }, []);
 
   const CaseCard = ({ title, description, tag, image, url, videoUrl }: any) => {
@@ -87,8 +93,8 @@ const Home: GenieType.FC<HomeProps> = memo(() => {
   };
 
   const renderContent = () => {
-    // Show ChatView if user has entered a message OR selected a session
-    if (inputInfo.message.length === 0 && !selectedSessionId) {
+    // Show ChatView if user has started chatting OR selected a session
+    if (!hasStartedChat && !selectedSessionId) {
       return (
         <div className="pt-[120px] flex flex-col items-center">
           <Slogn />
