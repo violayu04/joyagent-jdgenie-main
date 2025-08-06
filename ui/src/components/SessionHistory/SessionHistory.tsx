@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { List, Button, Modal, message, Empty, Tooltip } from 'antd';
-import { DeleteOutlined, MessageOutlined, PlusOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { List, Button, Modal, message, Empty, Tooltip, Input } from 'antd';
+import { DeleteOutlined, MessageOutlined, PlusOutlined, ExclamationCircleOutlined, EditOutlined } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import './SessionHistory.css';
 
@@ -27,6 +27,10 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({
   const [loading, setLoading] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+  const [renameModalVisible, setRenameModalVisible] = useState(false);
+  const [sessionToRename, setSessionToRename] = useState<string | null>(null);
+  const [currentTitle, setCurrentTitle] = useState('');
+  const [newTitle, setNewTitle] = useState('');
   const { token } = useAuth();
 
   useEffect(() => {
@@ -129,6 +133,68 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({
     setDeleteModalVisible(true);
   };
 
+  const renameSession = (sessionId: string, currentTitle: string) => {
+    console.log('renameSession called with sessionId:', sessionId, 'currentTitle:', currentTitle);
+    if (!token) {
+      console.log('No token available for rename operation');
+      return;
+    }
+
+    console.log('Showing rename modal');
+    setSessionToRename(sessionId);
+    setCurrentTitle(currentTitle);
+    setNewTitle(currentTitle);
+    setRenameModalVisible(true);
+  };
+
+  const handleRenameConfirm = async () => {
+    console.log('User clicked OK on rename confirmation');
+    if (!sessionToRename || !newTitle.trim()) return;
+    
+    setRenameModalVisible(false);
+    
+    try {
+      console.log('User confirmed rename. Renaming session:', sessionToRename, 'to:', newTitle);
+
+      const response = await fetch(`/api/sessions/${sessionToRename}/title`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title: newTitle.trim() }),
+      });
+
+      console.log('Rename API response received. Status:', response.status);
+      
+      if (response.ok) {
+        const updatedSession = await response.json();
+        console.log('Rename successful! Response:', updatedSession);
+        message.success('会话重命名成功');
+
+        // 更新本地状态
+        const updatedSessions = sessions.map(s => 
+          s.sessionId === sessionToRename 
+            ? { ...s, title: updatedSession.title, updatedAt: updatedSession.updatedAt }
+            : s
+        );
+        console.log('Updating sessions list with new title');
+        setSessions(updatedSessions);
+      } else {
+        const errorData = await response.json().catch(() => ({ message: '未知错误' }));
+        console.error('Rename failed:', response.status, errorData);
+        message.error(errorData.message || `重命名失败 (${response.status})`);
+      }
+    } catch (error) {
+      console.error('Failed to rename session:', error);
+      message.error(`网络错误: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setSessionToRename(null);
+      setCurrentTitle('');
+      setNewTitle('');
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -194,6 +260,18 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({
                     </div>
                   </div>
                   <div className="session-actions">
+                    <Tooltip title="重命名会话">
+                      <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        size="small"
+                        onClick={(e) => {
+                          console.log('Edit button clicked for session:', session.sessionId);
+                          e.stopPropagation();
+                          renameSession(session.sessionId, session.title);
+                        }}
+                      />
+                    </Tooltip>
                     <Tooltip title="删除会话">
                       <Button
                         type="text"
@@ -214,7 +292,7 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({
           />
         )}
       </div>
-      // 在这里添加下面的 Modal 组件
+      {/* 删除确认弹窗 */}
       <Modal
         title={
           <>
@@ -234,6 +312,44 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({
         okButtonProps={{ danger: true }}
       >
         <p>您确定要永久删除这个会话吗？此操作无法撤销。</p>
+      </Modal>
+
+      {/* 重命名弹窗 */}
+      <Modal
+        title={
+          <>
+            <EditOutlined style={{ marginRight: 8 }} />
+            重命名会话
+          </>
+        }
+        open={renameModalVisible}
+        onOk={handleRenameConfirm}
+        onCancel={() => {
+          console.log('Rename cancelled');
+          setRenameModalVisible(false);
+          setSessionToRename(null);
+          setCurrentTitle('');
+          setNewTitle('');
+        }}
+        okText="确认"
+        cancelText="取消"
+        okButtonProps={{ disabled: !newTitle.trim() || newTitle.trim() === currentTitle.trim() }}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <label>会话标题：</label>
+          <Input
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="请输入新的会话标题"
+            maxLength={100}
+            onPressEnter={() => {
+              if (newTitle.trim() && newTitle.trim() !== currentTitle.trim()) {
+                handleRenameConfirm();
+              }
+            }}
+            autoFocus
+          />
+        </div>
       </Modal>
     </div>
   );

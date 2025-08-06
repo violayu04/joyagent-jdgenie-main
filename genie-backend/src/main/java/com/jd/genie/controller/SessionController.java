@@ -122,4 +122,37 @@ public class SessionController {
             return ResponseEntity.badRequest().body(error);
         }
     }
+
+    @PutMapping("/{sessionId}/title")
+    public ResponseEntity<?> renameSession(@PathVariable String sessionId, @RequestBody Map<String, String> request, Authentication authentication) {
+        try {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            User user = userService.findByUsername(userDetails.getUsername()).orElseThrow();
+
+            String newTitle = request.get("title");
+            if (newTitle == null || newTitle.trim().isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("message", "会话标题不能为空");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            ChatSession updatedSession = chatSessionService.renameSession(sessionId, user, newTitle)
+                    .orElseThrow(() -> new RuntimeException("会话不存在或无权限修改"));
+
+            ChatSessionDto sessionDto = new ChatSessionDto(
+                    updatedSession.getSessionId(),
+                    updatedSession.getTitle(),
+                    updatedSession.getCreatedAt(),
+                    updatedSession.getUpdatedAt(),
+                    updatedSession.getMessages().size()
+            );
+
+            return ResponseEntity.ok(sessionDto);
+        } catch (Exception e) {
+            log.error("Failed to rename session", e);
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "重命名会话失败");
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
 }

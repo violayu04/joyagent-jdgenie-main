@@ -76,4 +76,16 @@ public class ChatSessionService {
             saveMessage(session, "assistant", content, messageOrder);
         }
     }
+
+    @Transactional
+    public Optional<ChatSession> renameSession(String sessionId, User user, String newTitle) {
+        Optional<ChatSession> sessionOpt = chatSessionRepository.findBySessionIdAndUser(sessionId, user);
+        if (sessionOpt.isPresent()) {
+            ChatSession session = sessionOpt.get();
+            session.setTitle(newTitle != null && !newTitle.trim().isEmpty() ? newTitle.trim() : "新对话");
+            session.setUpdatedAt(java.time.LocalDateTime.now());
+            return Optional.of(chatSessionRepository.save(session));
+        }
+        return Optional.empty();
+    }
 }
