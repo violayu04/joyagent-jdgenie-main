@@ -231,6 +231,9 @@ const ChatView: GenieType.FC<Props> = (props) => {
     const {message, deepThink, outputStyle, files} = inputInfo;
     const requestId = getUniqId();
     
+    // 如果没有指定outputStyle，使用product的type作为默认值
+    const finalOutputStyle = outputStyle || product?.type;
+    
     // Prepare document context for LLM
     let contextualQuery = message!;
     if (files && files.length > 0) {
@@ -261,7 +264,7 @@ const ChatView: GenieType.FC<Props> = (props) => {
     console.log('Using sessionId for message:', { selectedSessionId, sessionId, actualSessionId });
 
     try {
-      const saveResponse = await saveUserMessage(message!, actualSessionId, deepThink, outputStyle);
+      const saveResponse = await saveUserMessage(message!, actualSessionId, deepThink, finalOutputStyle);
       if (saveResponse.success) {
         actualSessionId = saveResponse.sessionId; // 使用返回的会话ID（可能是新创建的）
         console.log('User message saved immediately:', saveResponse);
@@ -310,7 +313,7 @@ const ChatView: GenieType.FC<Props> = (props) => {
       requestId: requestId,
       query: contextualQuery, // Send contextual query to LLM
       deepThink: deepThink ? 1 : 0,
-      outputStyle
+      outputStyle: finalOutputStyle
     };
     const handleMessage = (data: MESSAGE.Answer) => {
       const { finished, resultMap, packageType, status } = data;
@@ -377,11 +380,16 @@ const ChatView: GenieType.FC<Props> = (props) => {
       console.log('🚀 ~ close');
     };
 
+    // 获取JWT token用于SSE认证
+    const token = localStorage.getItem('genie_token');
+    const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+
     querySSE({
       body: params,
       handleMessage,
       handleError,
       handleClose,
+      headers: authHeaders,
     });
   });
 

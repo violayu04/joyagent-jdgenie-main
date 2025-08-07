@@ -15,6 +15,7 @@ interface SSEConfig {
   handleMessage: (data: any) => void;
   handleError: (error: Error) => void;
   handleClose: () => void;
+  headers?: Record<string, string>;
 }
 
 /**
@@ -23,21 +24,27 @@ interface SSEConfig {
  * @param url 可选的自定义 URL
  */
 export default (config: SSEConfig, url: string = DEFAULT_SSE_URL): void => {
-  const { body = null, handleMessage, handleError, handleClose } = config;
+  const { body = null, handleMessage, handleError, handleClose, headers = {} } = config;
 
   fetchEventSource(url, {
     method: 'POST',
     credentials: 'include',
-    headers: SSE_HEADERS,
+    headers: { ...SSE_HEADERS, ...headers },
     body: JSON.stringify(body),
     openWhenHidden: true,
     onmessage(event: EventSourceMessage) {
       if (event.data) {
+        // 处理心跳消息（纯文本）
+        if (event.data === 'heartbeat') {
+          console.log('SSE heartbeat received');
+          return;
+        }
+        
         try {
           const parsedData = JSON.parse(event.data);
           handleMessage(parsedData);
         } catch (error) {
-          console.error('Error parsing SSE message:', error);
+          console.error('Error parsing SSE message:', error, 'Raw data:', event.data);
           handleError(new Error('Failed to parse SSE message'));
         }
       }

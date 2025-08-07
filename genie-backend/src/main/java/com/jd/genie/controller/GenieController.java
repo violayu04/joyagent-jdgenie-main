@@ -120,7 +120,7 @@ public class GenieController {
      * @return
      * @throws UnsupportedEncodingException
      */
-    @PostMapping("/AutoAgent")
+    @PostMapping(value = "/AutoAgent", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter AutoAgent(@RequestBody AgentRequest request, Authentication authentication) throws UnsupportedEncodingException {
 
         log.info("{} auto agent request: {}", request.getRequestId(), JSON.toJSONString(request));

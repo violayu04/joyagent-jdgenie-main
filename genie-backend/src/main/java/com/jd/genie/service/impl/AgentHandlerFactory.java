@@ -33,6 +33,11 @@ public class AgentHandlerFactory {
             return null;
         }
 
+        // 如果没有指定agentType，使用默认的REACT类型
+        if (request.getAgentType() == null) {
+            request.setAgentType(5); // AgentType.REACT.getValue()
+        }
+
         // 方法1：通过supports方法匹配
         for (AgentHandlerService handler : handlerMap.values()) {
             if (handler.support(context, request)) {
@@ -40,6 +45,7 @@ public class AgentHandlerFactory {
             }
         }
 
-        return null;
+        // 如果仍然没有找到合适的handler，返回默认的ReactHandler
+        return handlerMap.get("reacthandlerimpl");
     }
 }

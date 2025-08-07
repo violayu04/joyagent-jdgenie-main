@@ -33,19 +33,37 @@ logging:
     root: INFO
 llm:
   default:
-    base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-    apikey: 'sk-122b6db498d342b2b0fa328f1b0532ae'
+    base_url: 'http://127.0.0.1:11434/v1'
+    apikey: 'ollama'
     interface_url: '/chat/completions'
-    model: qwen-max
-    max_tokens: 16384
-  settings: '{"qwen-max-model": {
-        "model": "qwen-max",
+    model: qwen3:14b
+    max_tokens: 8192
+  settings: '{"qwen3:14b": {
+        "model": "qwen3:14b",
         "max_tokens": 8192,
         "temperature": 0.7,
-        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-        "apikey": "sk-122b6db498d342b2b0fa328f1b0532ae",
+        "base_url": "http://127.0.0.1:11434/v1",
+        "apikey": "ollama",
         "interface_url": "/chat/completions",
-        "max_input_tokens": 128000
+        "max_input_tokens": 32000
+    },
+    "gpt-4.1": {
+        "model": "qwen3:14b",
+        "max_tokens": 8192,
+        "temperature": 0.7,
+        "base_url": "http://127.0.0.1:11434/v1",
+        "apikey": "ollama",
+        "interface_url": "/chat/completions",
+        "max_input_tokens": 32000
+    },
+    "claude-3-7-sonnet-v1": {
+        "model": "qwen3:14b",
+        "max_tokens": 8192,
+        "temperature": 0.7,
+        "base_url": "http://127.0.0.1:11434/v1",
+        "apikey": "ollama",
+        "interface_url": "/chat/completions",
+        "max_input_tokens": 32000
     }}'
 
 autobots:
@@ -397,7 +415,7 @@ Assistant：现在需要在上一步列举出的11、22、33、44、55、66、77
 # JWT Configuration
 jwt:
   secret: "mySecretKey123456789mySecretKey123456789" # 至少32位
-  expiration: 86400000 # 24小时 (单位: 毫秒)
+  expiration: 604800000 # 7天 (单位: 毫秒)
 
 # Vector Database and RAG Configuration
 vector:
