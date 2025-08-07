@@ -22,7 +22,8 @@ import {
   UploadOutlined,
   SearchOutlined,
   DeleteOutlined,
-  EyeOutlined
+  EyeOutlined,
+  EditOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import type { KnowledgeBase, CreateKnowledgeBaseRequest, SearchResult } from '../../types/knowledgebase';
@@ -52,6 +53,8 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileDescription, setFileDescription] = useState('');
+  const [editingDocumentId, setEditingDocumentId] = useState<string | null>(null);
+  const [editingFilename, setEditingFilename] = useState('');
   
   const [createForm] = Form.useForm();
   const [searchForm] = Form.useForm();
@@ -259,6 +262,45 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({
       }
     } catch (error) {
       console.error('Failed to delete document:', error);
+      message.error('网络错误');
+    }
+  };
+
+  const handleRenameDocument = async (document: any) => {
+    const newFilename = prompt('请输入新的文件名:', document.filename);
+    
+    if (!newFilename || newFilename.trim() === '' || newFilename === document.filename) {
+      return;
+    }
+    
+    try {
+      console.log('Renaming document:', document.documentId, 'to:', newFilename);
+      const response = await fetch(`/api/knowledge-base/documents/${document.documentId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ filename: newFilename.trim() }),
+      });
+
+      console.log('Rename response status:', response.status);
+      console.log('Rename response ok:', response.ok);
+      
+      if (response.ok) {
+        console.log('Document renamed successfully');
+        message.success('文档重命名成功');
+        // 重新加载文档列表
+        if (selectedKB) {
+          handleViewDetails(selectedKB);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Rename failed with error:', errorData);
+        message.error(errorData.message || '重命名失败');
+      }
+    } catch (error) {
+      console.error('Failed to rename document:', error);
       message.error('网络错误');
     }
   };
@@ -655,6 +697,14 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({
               renderItem={(doc: any) => (
                 <List.Item
                   actions={[
+                    <Tooltip title="重命名文档">
+                      <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        onClick={() => handleRenameDocument(doc)}
+                        size="small"
+                      />
+                    </Tooltip>,
                     <Tooltip title="删除文档">
                       <Button
                         type="text"

@@ -195,6 +195,32 @@ public class KnowledgeBaseController {
         }
     }
 
+    @PutMapping("/documents/{documentId}")
+    public ResponseEntity<?> updateDocument(@PathVariable String documentId, 
+                                          @RequestBody Map<String, String> updateRequest,
+                                          Authentication authentication) {
+        try {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            User user = userService.findByUsername(userDetails.getUsername()).orElseThrow();
+
+            String newFilename = updateRequest.get("filename");
+            if (newFilename == null || newFilename.trim().isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("message", "文件名不能为空");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            DocumentDto updatedDoc = knowledgeBaseService.updateDocumentFilename(documentId, newFilename.trim(), user);
+
+            return ResponseEntity.ok(updatedDoc);
+        } catch (Exception e) {
+            log.error("Failed to update document", e);
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "更新文档失败: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
     // DTO转换方法
     private KnowledgeBaseDto convertToDto(KnowledgeBase knowledgeBase) {
         KnowledgeBaseDto dto = new KnowledgeBaseDto();

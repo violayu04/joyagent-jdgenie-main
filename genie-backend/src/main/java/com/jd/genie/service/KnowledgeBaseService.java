@@ -1,5 +1,6 @@
 package com.jd.genie.service;
 
+import com.jd.genie.dto.knowledgebase.DocumentDto;
 import com.jd.genie.entity.*;
 import com.jd.genie.repository.*;
 import com.jd.genie.service.TextChunkingService.TextChunk;
@@ -322,6 +323,48 @@ public class KnowledgeBaseService {
         } catch (Exception e) {
             log.error("Failed to delete document: {}", documentId, e);
             throw new RuntimeException("删除文档失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 更新文档文件名
+     */
+    @Transactional
+    public DocumentDto updateDocumentFilename(String documentId, String newFilename, User user) {
+        Document document = documentRepository.findByDocumentId(documentId)
+                .orElseThrow(() -> new RuntimeException("文档不存在"));
+        
+        // 验证权限
+        if (!document.getKnowledgeBase().getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("无权限修改该文档");
+        }
+        
+        try {
+            // 更新文档的原始文件名
+            document.setOriginalFilename(newFilename);
+            document.setUpdatedAt(LocalDateTime.now());
+            
+            document = documentRepository.save(document);
+            
+            log.info("Document filename updated successfully: {} -> {}", documentId, newFilename);
+            
+            // 转换为DTO返回
+            DocumentDto dto = new DocumentDto();
+            dto.setDocumentId(document.getDocumentId());
+            dto.setFilename(document.getOriginalFilename());
+            dto.setContentType(document.getContentType());
+            dto.setFileSize(document.getFileSize());
+            dto.setStatus(document.getStatus().name());
+            dto.setErrorMessage(document.getErrorMessage());
+            dto.setMetadata(document.getMetadata());
+            dto.setCreatedAt(document.getCreatedAt());
+            dto.setUpdatedAt(document.getUpdatedAt());
+            
+            return dto;
+            
+        } catch (Exception e) {
+            log.error("Failed to update document filename: {}", documentId, e);
+            throw new RuntimeException("更新文档文件名失败: " + e.getMessage());
         }
     }
     
