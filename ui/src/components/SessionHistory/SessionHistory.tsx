@@ -16,12 +16,14 @@ interface SessionHistoryProps {
   onSessionSelect: (sessionId: string) => void;
   onNewSession: () => void;
   selectedSessionId?: string;
+  onSessionTitleUpdate?: (sessionId: string, newTitle: string) => void;
 }
 
 const SessionHistory: React.FC<SessionHistoryProps> = ({
   onSessionSelect,
   onNewSession,
-  selectedSessionId
+  selectedSessionId,
+  onSessionTitleUpdate
 }) => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [loading, setLoading] = useState(false);
@@ -180,6 +182,11 @@ const SessionHistory: React.FC<SessionHistoryProps> = ({
         );
         console.log('Updating sessions list with new title');
         setSessions(updatedSessions);
+        
+        // 通知ChatView更新标题
+        if (onSessionTitleUpdate) {
+          onSessionTitleUpdate(sessionToRename, updatedSession.title);
+        }
       } else {
         const errorData = await response.json().catch(() => ({ message: '未知错误' }));
         console.error('Rename failed:', response.status, errorData);

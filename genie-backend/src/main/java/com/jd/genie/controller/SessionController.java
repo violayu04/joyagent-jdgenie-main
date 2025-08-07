@@ -105,6 +105,32 @@ public class SessionController {
         }
     }
 
+    @GetMapping("/{sessionId}")
+    public ResponseEntity<?> getSession(@PathVariable String sessionId, Authentication authentication) {
+        try {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            User user = userService.findByUsername(userDetails.getUsername()).orElseThrow();
+
+            ChatSession session = chatSessionService.getSessionByIdAndUser(sessionId, user)
+                    .orElseThrow(() -> new RuntimeException("会话不存在或无权限访问"));
+
+            ChatSessionDto sessionDto = new ChatSessionDto(
+                    session.getSessionId(),
+                    session.getTitle(),
+                    session.getCreatedAt(),
+                    session.getUpdatedAt(),
+                    session.getMessages().size()
+            );
+
+            return ResponseEntity.ok(sessionDto);
+        } catch (Exception e) {
+            log.error("Failed to get session", e);
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "获取会话信息失败");
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
     @GetMapping("/{sessionId}/messages")
     public ResponseEntity<?> getSessionMessages(@PathVariable String sessionId, Authentication authentication) {
         try {

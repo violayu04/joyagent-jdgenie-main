@@ -305,6 +305,57 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({
     }
   };
 
+  const handleRenameKnowledgeBase = async (kb: KnowledgeBase) => {
+    const newName = prompt('请输入新的知识库名称:', kb.name);
+    
+    if (!newName || newName.trim() === '' || newName === kb.name) {
+      console.log('Rename cancelled: no new name or same name');
+      return;
+    }
+    
+    try {
+      console.log('Renaming knowledge base:', kb.id, 'to:', newName);
+      console.log('Token:', token ? 'exists' : 'missing');
+      console.log('URL:', `/api/knowledge-base/${kb.id}`);
+      console.log('Request body:', { name: newName.trim() });
+      
+      const response = await fetch(`/api/knowledge-base/${kb.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+
+      console.log('KB Rename response status:', response.status);
+      console.log('KB Rename response ok:', response.ok);
+      console.log('KB Rename response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (response.ok) {
+        const responseData = await response.json();
+        console.log('Knowledge base renamed successfully:', responseData);
+        message.success('知识库重命名成功');
+        // 重新加载知识库列表
+        loadKnowledgeBases();
+      } else {
+        let errorMessage;
+        try {
+          const errorData = await response.json();
+          console.error('KB Rename failed with error data:', errorData);
+          errorMessage = errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        message.error(errorMessage);
+      }
+    } catch (error) {
+      console.error('Failed to rename knowledge base:', error);
+      message.error('网络错误: ' + error.message);
+    }
+  };
+
   const handleDeleteKnowledgeBase = async (kb: KnowledgeBase) => {
     // Simple confirm dialog instead of Modal.confirm for testing
     const confirmed = window.confirm(`确定要删除知识库"${kb.name}"吗？此操作不可撤销。`);
@@ -407,6 +458,12 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({
                   <Tooltip title="查看详情">
                     <EyeOutlined
                       onClick={() => handleViewDetails(kb)}
+                    />
+                  </Tooltip>,
+                  <Tooltip title="重命名">
+                    <EditOutlined
+                      onClick={() => handleRenameKnowledgeBase(kb)}
+                      style={{ color: '#1890ff' }}
                     />
                   </Tooltip>,
                   <Tooltip title="删除">

@@ -22,6 +22,7 @@ const Home: GenieType.FC<HomeProps> = memo(() => {
   const [videoModalOpen, setVideoModalOpen] = useState();
   const [selectedSessionId, setSelectedSessionId] = useState<string | undefined>(undefined);
   const [hasStartedChat, setHasStartedChat] = useState(false);
+  const [chatViewTitleUpdater, setChatViewTitleUpdater] = useState<((sessionId: string, newTitle: string) => void) | null>(null);
 
   const changeInputInfo = useCallback((info: CHAT.TInputInfo) => {
     setInputInfo(info);
@@ -40,6 +41,16 @@ const Home: GenieType.FC<HomeProps> = memo(() => {
     setSelectedSessionId(undefined);
     setInputInfo({ message: "", deepThink: false });
     setHasStartedChat(false);
+  }, []);
+
+  const handleSessionTitleUpdate = useCallback((sessionId: string, newTitle: string) => {
+    if (chatViewTitleUpdater) {
+      chatViewTitleUpdater(sessionId, newTitle);
+    }
+  }, [chatViewTitleUpdater]);
+
+  const handleChatViewTitleUpdaterReady = useCallback((updater: (sessionId: string, newTitle: string) => void) => {
+    setChatViewTitleUpdater(() => updater);
   }, []);
 
   const CaseCard = ({ title, description, tag, image, url, videoUrl }: any) => {
@@ -135,7 +146,7 @@ const Home: GenieType.FC<HomeProps> = memo(() => {
         </div>
       );
     }
-    return <ChatView inputInfo={inputInfo} product={product} selectedSessionId={selectedSessionId} />;
+    return <ChatView inputInfo={inputInfo} product={product} selectedSessionId={selectedSessionId} onSessionTitleUpdate={handleChatViewTitleUpdaterReady} />;
   };
 
   return (
@@ -153,6 +164,7 @@ const Home: GenieType.FC<HomeProps> = memo(() => {
             onSessionSelect={handleSessionSelect}
             onNewSession={handleNewSession}
             selectedSessionId={selectedSessionId}
+            onSessionTitleUpdate={handleSessionTitleUpdate}
           />
           <UserProfile />
         </Header>

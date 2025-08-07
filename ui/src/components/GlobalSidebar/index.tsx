@@ -8,12 +8,14 @@ interface GlobalSidebarProps {
   onSessionSelect: (sessionId: string) => void;
   onNewSession: () => void;
   selectedSessionId?: string;
+  onSessionTitleUpdate?: (sessionId: string, newTitle: string) => void;
 }
 
 const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
   onSessionSelect,
   onNewSession,
-  selectedSessionId
+  selectedSessionId,
+  onSessionTitleUpdate
 }) => {
   console.log('GlobalSidebar rendered with selectedSessionId:', selectedSessionId);
   const [visible, setVisible] = useState(false);
@@ -62,6 +64,7 @@ const GlobalSidebar: React.FC<GlobalSidebarProps> = ({
           onSessionSelect={handleSessionSelect}
           onNewSession={handleNewSession}
           selectedSessionId={selectedSessionId}
+          onSessionTitleUpdate={onSessionTitleUpdate}
         />
       </Drawer>
     </>

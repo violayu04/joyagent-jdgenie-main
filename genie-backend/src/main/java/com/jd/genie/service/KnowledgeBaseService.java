@@ -1,6 +1,7 @@
 package com.jd.genie.service;
 
 import com.jd.genie.dto.knowledgebase.DocumentDto;
+import com.jd.genie.dto.knowledgebase.KnowledgeBaseDto;
 import com.jd.genie.entity.*;
 import com.jd.genie.repository.*;
 import com.jd.genie.service.TextChunkingService.TextChunk;
@@ -365,6 +366,54 @@ public class KnowledgeBaseService {
         } catch (Exception e) {
             log.error("Failed to update document filename: {}", documentId, e);
             throw new RuntimeException("更新文档文件名失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 更新知识库信息
+     */
+    @Transactional
+    public KnowledgeBaseDto updateKnowledgeBase(Long knowledgeBaseId, String newName, String newDescription, User user) {
+        KnowledgeBase knowledgeBase = knowledgeBaseRepository.findByIdAndUser(knowledgeBaseId, user)
+                .orElseThrow(() -> new RuntimeException("知识库不存在或无权限访问"));
+        
+        try {
+            boolean updated = false;
+            
+            // 更新名称
+            if (newName != null && !newName.trim().isEmpty()) {
+                knowledgeBase.setName(newName.trim());
+                updated = true;
+            }
+            
+            // 更新描述
+            if (newDescription != null) {
+                knowledgeBase.setDescription(newDescription.trim().isEmpty() ? null : newDescription.trim());
+                updated = true;
+            }
+            
+            if (updated) {
+                knowledgeBase.setUpdatedAt(LocalDateTime.now());
+                knowledgeBase = knowledgeBaseRepository.save(knowledgeBase);
+                
+                log.info("Knowledge base updated successfully: {} -> name: {}, description: {}", 
+                        knowledgeBaseId, newName, newDescription);
+            }
+            
+            // 转换为DTO返回
+            KnowledgeBaseDto dto = new KnowledgeBaseDto();
+            dto.setId(knowledgeBase.getId());
+            dto.setName(knowledgeBase.getName());
+            dto.setDescription(knowledgeBase.getDescription());
+            dto.setDocumentCount(knowledgeBase.getDocumentCount());
+            dto.setCreatedAt(knowledgeBase.getCreatedAt());
+            dto.setUpdatedAt(knowledgeBase.getUpdatedAt());
+            
+            return dto;
+            
+        } catch (Exception e) {
+            log.error("Failed to update knowledge base: {}", knowledgeBaseId, e);
+            throw new RuntimeException("更新知识库失败: " + e.getMessage());
         }
     }
     

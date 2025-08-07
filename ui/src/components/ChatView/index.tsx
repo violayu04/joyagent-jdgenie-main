@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from "react";
 import { getUniqId, scrollToTop, ActionViewItemEnum } from "@/utils";
 import querySSE from "@/utils/querySSE";
 import {  handleTaskData, combineData } from "@/utils/chat";
@@ -16,10 +16,11 @@ type Props = {
   inputInfo: CHAT.TInputInfo;
   product?: CHAT.Product;
   selectedSessionId?: string;
+  onSessionTitleUpdate?: (updateFn: (sessionId: string, newTitle: string) => void) => void;
 };
 
 const ChatView: GenieType.FC<Props> = (props) => {
-  const { inputInfo: inputInfoProp, product, selectedSessionId } = props;
+  const { inputInfo: inputInfoProp, product, selectedSessionId, onSessionTitleUpdate } = props;
 
   console.log('ChatView rendered with selectedSessionId:', selectedSessionId);
 
@@ -49,6 +50,21 @@ const ChatView: GenieType.FC<Props> = (props) => {
     }
   }, [selectedSessionId]);
 
+  // Method to update session title
+  const updateSessionTitle = (sessionId: string, newTitle: string) => {
+    if (sessionId === selectedSessionId) {
+      console.log('Updating chat title to:', newTitle);
+      setChatTitle(newTitle);
+    }
+  };
+
+  // Expose the update method to parent
+  useEffect(() => {
+    if (onSessionTitleUpdate) {
+      onSessionTitleUpdate(updateSessionTitle);
+    }
+  }, [onSessionTitleUpdate, selectedSessionId]);
+
   const clearChatData = () => {
     chatList.current = [];
     setChatTitle("");
@@ -65,10 +81,25 @@ const ChatView: GenieType.FC<Props> = (props) => {
       console.log('Starting to load existing session:', sessionIdToLoad);
       setLoading(true);
 
-      // 获取会话消息
+      // 获取会话信息和消息
       const token = localStorage.getItem('genie_token');
       console.log('Using token for session load:', token ? 'Token exists' : 'No token');
 
+      // 首先获取会话信息（包含正确的标题）
+      const sessionResponse = await fetch(`/api/sessions/${sessionIdToLoad}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      let sessionTitle = '';
+      if (sessionResponse.ok) {
+        const sessionInfo = await sessionResponse.json();
+        sessionTitle = sessionInfo.title;
+        console.log('Found session title:', sessionTitle);
+      }
+
+      // 获取会话消息
       const response = await fetch(`/api/sessions/${sessionIdToLoad}/messages`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -80,6 +111,14 @@ const ChatView: GenieType.FC<Props> = (props) => {
         const messages = await response.json();
         console.log('Loaded messages from API:', messages);
         setSessionId(sessionIdToLoad);
+
+        // 设置正确的会话标题
+        if (sessionTitle) {
+          setChatTitle(sessionTitle);
+        } else if (messages.length > 0 && messages[0].role === 'user') {
+          // 如果没有获取到会话标题，使用第一条用户消息作为备选
+          setChatTitle(messages[0].content);
+        }
 
         // 将消息转换为聊天项目
         const chatItems: CHAT.ChatItem[] = [];
@@ -108,10 +147,6 @@ const ChatView: GenieType.FC<Props> = (props) => {
             }
 
             currentUserMessage = message.content;
-            // 获取会话标题（使用第一条用户消息作为标题）
-            if (chatItems.length === 0) {
-              setChatTitle(message.content);
-            }
           } else if (message.role === 'assistant' && currentUserMessage) {
             const chatItem: CHAT.ChatItem = {
               query: currentUserMessage,
@@ -391,9 +426,6 @@ const ChatView: GenieType.FC<Props> = (props) => {
         <div className="w-full flex justify-between">
           <div className="w-full flex items-center pb-8">
             <Logo />
-            <div className="overflow-hidden whitespace-nowrap text-ellipsis text-[16px] font-[500] text-[#27272A] mr-8">
-              {chatTitle}
-            </div>
             {inputInfoProp.deepThink && <div className="rounded-[4px] px-6 border-1 border-solid border-gray-300 flex items-center shrink-0">
               <i className="font_family icon-shendusikao mr-6 text-[12px]"></i>
               <span className="ml-[-4px]">深度研究</span>

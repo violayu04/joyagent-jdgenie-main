@@ -221,6 +221,34 @@ public class KnowledgeBaseController {
         }
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateKnowledgeBase(@PathVariable Long id,
+                                               @RequestBody Map<String, String> updateRequest,
+                                               Authentication authentication) {
+        try {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            User user = userService.findByUsername(userDetails.getUsername()).orElseThrow();
+
+            String newName = updateRequest.get("name");
+            String newDescription = updateRequest.get("description");
+            
+            if (newName != null && newName.trim().isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("message", "知识库名称不能为空");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            KnowledgeBaseDto updatedKB = knowledgeBaseService.updateKnowledgeBase(id, newName, newDescription, user);
+
+            return ResponseEntity.ok(updatedKB);
+        } catch (Exception e) {
+            log.error("Failed to update knowledge base", e);
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "更新知识库失败: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
     // DTO转换方法
     private KnowledgeBaseDto convertToDto(KnowledgeBase knowledgeBase) {
         KnowledgeBaseDto dto = new KnowledgeBaseDto();
