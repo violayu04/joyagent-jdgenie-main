@@ -23,7 +23,8 @@ import {
   SearchOutlined,
   DeleteOutlined,
   EyeOutlined,
-  EditOutlined
+  EditOutlined,
+  BlockOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import type { KnowledgeBase, CreateKnowledgeBaseRequest, SearchResult } from '../../types/knowledgebase';
@@ -55,6 +56,16 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({
   const [fileDescription, setFileDescription] = useState('');
   const [editingDocumentId, setEditingDocumentId] = useState<string | null>(null);
   const [editingFilename, setEditingFilename] = useState('');
+  const [chunksModalVisible, setChunksModalVisible] = useState(false);
+  const [chunks, setChunks] = useState<any[]>([]);
+  const [chunksLoading, setChunksLoading] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<any>(null);
+  const [chunksPagination, setChunksPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0
+  });
+  const [chunksSearch, setChunksSearch] = useState('');
   
   const [createForm] = Form.useForm();
   const [searchForm] = Form.useForm();
@@ -402,6 +413,69 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({
       case 'FAILED': return 'error';
       default: return 'default';
     }
+  };
+
+  // 加载文档chunks
+  const loadDocumentChunks = async (document: any, page: number = 1, search: string = '') => {
+    if (!token || !selectedKB) return;
+    
+    setChunksLoading(true);
+    try {
+      const searchParams = new URLSearchParams({
+        page: (page - 1).toString(),
+        size: chunksPagination.pageSize.toString(),
+      });
+      
+      if (search) {
+        searchParams.append('search', search);
+      }
+      
+      const response = await fetch(
+        `/api/knowledge-base/${selectedKB.id}/documents/${document.documentId}/chunks?${searchParams}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setChunks(data.chunks);
+        setChunksPagination(prev => ({
+          ...prev,
+          current: page,
+          total: data.totalElements
+        }));
+      } else {
+        message.error('获取文档分块失败');
+      }
+    } catch (error) {
+      console.error('Failed to load document chunks:', error);
+      message.error('网络错误');
+    } finally {
+      setChunksLoading(false);
+    }
+  };
+
+  // 打开chunks预览
+  const handleViewChunks = (document: any) => {
+    setSelectedDocument(document);
+    setChunksModalVisible(true);
+    setChunksSearch('');
+    setChunksPagination(prev => ({ ...prev, current: 1 }));
+    loadDocumentChunks(document, 1, '');
+  };
+
+  // 处理chunks搜索
+  const handleChunksSearch = (value: string) => {
+    setChunksSearch(value);
+    loadDocumentChunks(selectedDocument, 1, value);
+  };
+
+  // 处理chunks分页
+  const handleChunksPagination = (page: number) => {
+    loadDocumentChunks(selectedDocument, page, chunksSearch);
   };
 
   return (
@@ -754,6 +828,15 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({
               renderItem={(doc: any) => (
                 <List.Item
                   actions={[
+                    <Tooltip title="查看分块">
+                      <Button
+                        type="text"
+                        icon={<BlockOutlined />}
+                        onClick={() => handleViewChunks(doc)}
+                        size="small"
+                        disabled={doc.status !== 'COMPLETED'}
+                      />
+                    </Tooltip>,
                     <Tooltip title="重命名文档">
                       <Button
                         type="text"
@@ -805,6 +888,126 @@ const KnowledgeBaseManager: React.FC<KnowledgeBaseManagerProps> = ({
             />
           )}
         </div>
+      </Modal>
+
+      {/* 文档分块预览弹窗 */}
+      <Modal
+        title={
+          <div>
+            <BlockOutlined style={{ marginRight: 8 }} />
+            文档分块预览: {selectedDocument?.filename}
+          </div>
+        }
+        open={chunksModalVisible}
+        onCancel={() => {
+          setChunksModalVisible(false);
+          setChunks([]);
+          setSelectedDocument(null);
+          setChunksSearch('');
+        }}
+        footer={null}
+        width={800}
+        styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Input.Search
+            placeholder="搜索分块内容..."
+            allowClear
+            onSearch={handleChunksSearch}
+            style={{ marginBottom: 16 }}
+          />
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: 16,
+            fontSize: '14px',
+            color: '#666'
+          }}>
+            <span>共 {chunksPagination.total} 个分块</span>
+            <span>
+              页面大小: {chunksPagination.pageSize} • 
+              当前: {chunksPagination.current}/{Math.ceil(chunksPagination.total / chunksPagination.pageSize)}
+            </span>
+          </div>
+        </div>
+
+        <List
+          loading={chunksLoading}
+          dataSource={chunks}
+          renderItem={(chunk: any, index) => (
+            <List.Item 
+              style={{ 
+                border: '1px solid #f0f0f0', 
+                borderRadius: 6, 
+                marginBottom: 12,
+                padding: 16
+              }}
+            >
+              <List.Item.Meta
+                avatar={
+                  <div style={{
+                    backgroundColor: '#1890ff',
+                    color: 'white',
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}>
+                    {chunk.chunkIndex + 1}
+                  </div>
+                }
+                title={
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>第 {chunk.chunkIndex + 1} 块</span>
+                    <div>
+                      <Tag color="blue">{chunk.tokenCount} tokens</Tag>
+                      <Tag color="green">
+                        {chunk.startPos}-{chunk.endPos}
+                      </Tag>
+                    </div>
+                  </div>
+                }
+                description={
+                  <div>
+                    <div style={{ 
+                      backgroundColor: '#f9f9f9', 
+                      padding: 12, 
+                      borderRadius: 4,
+                      marginTop: 8,
+                      lineHeight: 1.6,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word'
+                    }}>
+                      {chunk.content}
+                    </div>
+                    <div style={{ 
+                      marginTop: 8, 
+                      fontSize: '12px', 
+                      color: '#999',
+                      textAlign: 'right'
+                    }}>
+                      创建时间: {formatDate(chunk.createdAt)}
+                    </div>
+                  </div>
+                }
+              />
+            </List.Item>
+          )}
+          pagination={{
+            current: chunksPagination.current,
+            pageSize: chunksPagination.pageSize,
+            total: chunksPagination.total,
+            onChange: handleChunksPagination,
+            showSizeChanger: false,
+            showQuickJumper: true,
+            showTotal: (total, range) => `显示 ${range[0]}-${range[1]} / 共 ${total} 个分块`
+          }}
+        />
       </Modal>
     </div>
   );

@@ -133,6 +133,72 @@ public class KnowledgeBaseController {
         }
     }
 
+    @GetMapping("/{knowledgeBaseId}/documents/{documentId}/chunks")
+    public ResponseEntity<?> getDocumentChunks(@PathVariable Long knowledgeBaseId,
+                                             @PathVariable String documentId,
+                                             @RequestParam(defaultValue = "0") int page,
+                                             @RequestParam(defaultValue = "10") int size,
+                                             @RequestParam(required = false) String search,
+                                             Authentication authentication) {
+        try {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            User user = userService.findByUsername(userDetails.getUsername()).orElseThrow();
+            
+            // 验证知识库权限
+            knowledgeBaseService.getKnowledgeBase(knowledgeBaseId, user)
+                    .orElseThrow(() -> new RuntimeException("知识库不存在或无权限访问"));
+            
+            List<DocumentChunk> allChunks = knowledgeBaseService.getDocumentChunksByDocumentId(documentId, user);
+            
+            // 搜索过滤
+            List<DocumentChunk> filteredChunks = allChunks;
+            if (search != null && !search.trim().isEmpty()) {
+                String searchLower = search.toLowerCase();
+                filteredChunks = allChunks.stream()
+                        .filter(chunk -> chunk.getContent().toLowerCase().contains(searchLower))
+                        .collect(Collectors.toList());
+            }
+            
+            // 分页
+            int start = page * size;
+            int end = Math.min(start + size, filteredChunks.size());
+            List<DocumentChunk> pageChunks = start < filteredChunks.size() ? 
+                    filteredChunks.subList(start, end) : Collections.emptyList();
+            
+            // 转换为DTO
+            List<Map<String, Object>> chunkDtos = pageChunks.stream()
+                    .map(chunk -> {
+                        Map<String, Object> dto = new HashMap<>();
+                        dto.put("id", chunk.getId());
+                        dto.put("chunkId", chunk.getChunkId());
+                        dto.put("chunkIndex", chunk.getChunkIndex());
+                        dto.put("content", chunk.getContent());
+                        dto.put("tokenCount", chunk.getTokenCount());
+                        dto.put("startPos", chunk.getStartPos());
+                        dto.put("endPos", chunk.getEndPos());
+                        dto.put("createdAt", chunk.getCreatedAt());
+                        return dto;
+                    })
+                    .collect(Collectors.toList());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("chunks", chunkDtos);
+            response.put("page", page);
+            response.put("size", size);
+            response.put("totalElements", filteredChunks.size());
+            response.put("totalPages", (int) Math.ceil((double) filteredChunks.size() / size));
+            response.put("hasNext", end < filteredChunks.size());
+            response.put("hasPrevious", page > 0);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to get document chunks", e);
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "获取文档分块失败: " + e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+
     @PostMapping("/{id}/search")
     public ResponseEntity<?> searchInKnowledgeBase(@PathVariable Long id,
                                                  @RequestBody SearchRequest request,

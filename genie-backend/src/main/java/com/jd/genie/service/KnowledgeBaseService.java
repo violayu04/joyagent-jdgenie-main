@@ -21,6 +21,8 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 
 @Slf4j
 @Service
@@ -286,6 +288,28 @@ public class KnowledgeBaseService {
     }
     
     /**
+     * 获取文档的所有chunks
+     */
+    public List<DocumentChunk> getDocumentChunks(Document document) {
+        return documentChunkRepository.findByDocumentOrderByChunkIndex(document);
+    }
+    
+    /**
+     * 根据文档ID获取文档chunks (需要验证用户权限)
+     */
+    public List<DocumentChunk> getDocumentChunksByDocumentId(String documentId, User user) {
+        Document document = documentRepository.findByDocumentId(documentId)
+                .orElseThrow(() -> new RuntimeException("文档不存在"));
+        
+        // 验证用户是否有权限访问该文档
+        if (!document.getKnowledgeBase().getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("无权限访问该文档");
+        }
+        
+        return getDocumentChunks(document);
+    }
+    
+    /**
      * 删除文档
      */
     @Transactional
@@ -463,9 +487,8 @@ public class KnowledgeBaseService {
         if (isTextFile(contentType)) {
             return Files.readString(filePath, StandardCharsets.UTF_8);
         } else if (isPdfFile(contentType)) {
-            // PDF文件目前返回占位符内容，后续可以集成PDF解析库
-            return "PDF文档内容提取功能开发中。文件名: " + document.getOriginalFilename() + 
-                   ", 大小: " + document.getFileSize() + " 字节";
+            // 提取PDF内容
+            return extractPdfContent(filePath);
         } else {
             // 其他文件类型返回占位符内容
             return "文档类型 " + contentType + " 的内容提取功能开发中。文件名: " + 
@@ -498,6 +521,30 @@ public class KnowledgeBaseService {
     
     private boolean isPdfFile(String contentType) {
         return "application/pdf".equals(contentType);
+    }
+    
+    private String extractPdfContent(Path filePath) throws IOException {
+        log.info("Extracting content from PDF file: {}", filePath);
+        
+        try (PDDocument document = PDDocument.load(filePath.toFile())) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            
+            // 设置提取参数
+            stripper.setStartPage(1);
+            stripper.setEndPage(document.getNumberOfPages());
+            stripper.setSortByPosition(true);
+            
+            String content = stripper.getText(document);
+            
+            log.info("Successfully extracted {} characters from PDF: {}", 
+                    content.length(), filePath.getFileName());
+            
+            return content;
+            
+        } catch (Exception e) {
+            log.error("Failed to extract content from PDF: {}", filePath, e);
+            throw new IOException("PDF内容提取失败: " + e.getMessage(), e);
+        }
     }
     
     private Path saveFileToLocal(byte[] fileBytes, String filename) throws IOException {

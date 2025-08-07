@@ -420,7 +420,7 @@ vector:
   
   # 文本分块配置
   chunking:
-    chunk-size: 1000
-    chunk-overlap: 200
+    chunk-size: 500
+    chunk-overlap: 100
     strategy: recursive  # 支持: recursive, sentence, paragraph
-    separators: "\n\n,\n, ,。,！,？"
+    separators: "\n\n,\n, ,。,！,？,，"

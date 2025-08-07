@@ -195,22 +195,70 @@ public class TextChunkingService {
     private List<String> splitTextRecursively(String text, String[] separators, int chunkSize, int overlap) {
         List<String> finalChunks = new ArrayList<>();
         
-        // 第一步：使用第一个分隔符分割
-        List<String> splits = Arrays.asList(text.split(Pattern.quote(separators[0])));
+        // 如果文本已经足够小，直接返回
+        if (text.length() <= chunkSize) {
+            if (!text.trim().isEmpty()) {
+                finalChunks.add(text.trim());
+            }
+            return finalChunks;
+        }
         
-        // 第二步：处理每个分割后的文本
-        for (String split : splits) {
-            if (split.length() <= chunkSize) {
-                finalChunks.add(split);
+        // 如果没有更多分隔符，强制按字符分割
+        if (separators.length == 0) {
+            List<String> charChunks = splitByCharacter(text, chunkSize, overlap);
+            finalChunks.addAll(charChunks);
+            return finalChunks;
+        }
+        
+        // 使用当前分隔符分割
+        String currentSeparator = separators[0];
+        String[] splits = text.split(Pattern.quote(currentSeparator), -1); // -1保留空字符串
+        
+        StringBuilder currentChunk = new StringBuilder();
+        String[] nextSeparators = separators.length > 1 ? 
+            Arrays.copyOfRange(separators, 1, separators.length) : new String[0];
+        
+        for (int i = 0; i < splits.length; i++) {
+            String split = splits[i];
+            
+            // 计算添加当前split后的长度
+            int potentialLength = currentChunk.length() + 
+                (currentChunk.length() > 0 ? currentSeparator.length() : 0) + split.length();
+            
+            if (potentialLength <= chunkSize || currentChunk.length() == 0) {
+                // 可以添加到当前块
+                if (currentChunk.length() > 0) {
+                    currentChunk.append(currentSeparator);
+                }
+                currentChunk.append(split);
             } else {
-                // 如果文本还是太长，使用下一个分隔符
-                if (separators.length > 1) {
-                    String[] nextSeparators = Arrays.copyOfRange(separators, 1, separators.length);
-                    finalChunks.addAll(splitTextRecursively(split, nextSeparators, chunkSize, overlap));
+                // 当前块已满，处理当前块
+                if (currentChunk.length() > 0) {
+                    String chunkText = currentChunk.toString().trim();
+                    if (!chunkText.isEmpty()) {
+                        if (chunkText.length() <= chunkSize) {
+                            finalChunks.add(chunkText);
+                        } else {
+                            // 当前块仍然太大，需要进一步分割
+                            finalChunks.addAll(splitTextRecursively(chunkText, nextSeparators, chunkSize, overlap));
+                        }
+                    }
+                }
+                
+                // 开始新块
+                currentChunk = new StringBuilder(split);
+            }
+        }
+        
+        // 处理最后一个块
+        if (currentChunk.length() > 0) {
+            String chunkText = currentChunk.toString().trim();
+            if (!chunkText.isEmpty()) {
+                if (chunkText.length() <= chunkSize) {
+                    finalChunks.add(chunkText);
                 } else {
-                    // 强制按字符分割
-                    List<String> charChunks = splitByCharacter(split, chunkSize, overlap);
-                    finalChunks.addAll(charChunks);
+                    // 最后一个块仍然太大，需要进一步分割
+                    finalChunks.addAll(splitTextRecursively(chunkText, nextSeparators, chunkSize, overlap));
                 }
             }
         }
