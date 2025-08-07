@@ -3,6 +3,11 @@ spring:
     name: genie-backend
   config:
     encoding: UTF-8
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+      enabled: true
   # Database Configuration
   datasource:
     url: jdbc:h2:file:./data/geniedb
@@ -393,3 +398,29 @@ Assistant：现在需要在上一步列举出的11、22、33、44、55、66、77
 jwt:
   secret: "mySecretKey123456789mySecretKey123456789" # 至少32位
   expiration: 86400000 # 24小时 (单位: 毫秒)
+
+# Vector Database and RAG Configuration
+vector:
+  # 向量数据库配置
+  database:
+    type: file          # 支持: chroma, qdrant, milvus, file
+    host: 127.0.0.1
+    port: 8000
+    collection: genie_documents
+    api-key: ""         # 如果需要的话
+  
+  # 嵌入模型配置
+  embedding:
+    provider: ollama    # 支持: openai, huggingface, ollama, local
+    model: nomic-embed-text
+    api-key: ""         # Ollama不需要API Key
+    base-url: "http://127.0.0.1:11434"
+    dimension: 768      # nomic-embed-text的向量维度是768
+    max-tokens: 8191
+  
+  # 文本分块配置
+  chunking:
+    chunk-size: 1000
+    chunk-overlap: 200
+    strategy: recursive  # 支持: recursive, sentence, paragraph
+    separators: "\n\n,\n, ,。,！,？"

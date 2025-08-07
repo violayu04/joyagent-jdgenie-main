@@ -1,10 +1,11 @@
 import React, { useMemo, useRef, useState, useCallback } from "react";
 import { Input, Button, Tooltip, Upload, message, Card, List, Tag, Space, Modal } from "antd";
-import { PaperClipOutlined, DeleteOutlined, FileTextOutlined, LoadingOutlined } from '@ant-design/icons';
+import { PaperClipOutlined, DeleteOutlined, FileTextOutlined, LoadingOutlined, DatabaseOutlined } from '@ant-design/icons';
 import classNames from "classnames";
 import { TextAreaRef } from "antd/es/input/TextArea";
 import { getOS } from "@/utils";
 import type { UploadProps } from 'antd';
+import KnowledgeBaseSelector from '../KnowledgeBase/KnowledgeBaseSelector';
 
 const { TextArea } = Input;
 
@@ -71,6 +72,7 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
   const [supportedFormats, setSupportedFormats] = useState<Record<string, string>>({});
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedFile, setSelectedFile] = useState<CHAT.TFile | null>(null);
+  const [selectedKnowledgeBaseId, setSelectedKnowledgeBaseId] = useState<number | undefined>();
   const textareaRef = useRef<TextAreaRef>(null);
   const tempData = useRef<{
     cmdPress?: boolean;
@@ -249,6 +251,7 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
       outputStyle: product?.type,
       deepThink,
       files: files.length > 0 ? files : undefined,
+      knowledgeBaseId: selectedKnowledgeBaseId,
     });
     
     // Clear the input field after a small delay to ensure DOM is updated
@@ -449,6 +452,15 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
               >
                 {files.length > 0 ? `${files.length} 文档` : '上传文档'}
               </Button>
+              
+              {/* Knowledge Base Selector */}
+              <div className="knowledge-base-selector-wrapper">
+                <KnowledgeBaseSelector
+                  value={selectedKnowledgeBaseId}
+                  onChange={setSelectedKnowledgeBaseId}
+                  disabled={disabled}
+                />
+              </div>
             </div>
             
             <div className="flex items-center">

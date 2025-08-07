@@ -1,0 +1,168 @@
+.knowledge-base-manager {
+  padding: 24px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.kb-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 16px 24px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.kb-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.kb-title .anticon {
+  color: #1890ff;
+  font-size: 20px;
+}
+
+.kb-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.kb-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.kb-card.selected {
+  border: 2px solid #1890ff;
+  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.2);
+}
+
+.kb-card-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.kb-icon {
+  color: #1890ff;
+  font-size: 24px;
+}
+
+.kb-description {
+  color: #666;
+  font-size: 13px;
+}
+
+.kb-meta {
+  margin-top: 8px;
+  color: #999;
+}
+
+.search-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #1890ff;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.search-result-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.search-result-content {
+  color: #666;
+}
+
+.content-preview {
+  background: #f9f9f9;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  line-height: 1.5;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.search-result-meta {
+  color: #999;
+  font-size: 12px;
+}
+
+.ant-list-item {
+  padding: 16px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.ant-list-item:last-child {
+  border-bottom: none;
+}
+
+.ant-card-actions > li {
+  margin: 0;
+}
+
+.ant-card-actions > li > span {
+  color: #666;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.ant-card-actions > li > span:hover {
+  color: #1890ff;
+}
+
+.ant-upload-dragger {
+  background: #fafafa !important;
+  border: 2px dashed #d9d9d9 !important;
+  border-radius: 6px;
+}
+
+.ant-upload-dragger:hover {
+  border-color: #1890ff !important;
+}
+
+.ant-upload-dragger.ant-upload-drag-hover {
+  border-color: #1890ff !important;
+  background: #f0f8ff !important;
+}
+
+.ant-upload-drag-icon {
+  color: #1890ff !important;
+}
+
+@media (max-width: 768px) {
+  .knowledge-base-manager {
+    padding: 16px;
+  }
+  
+  .kb-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .kb-title {
+    justify-content: center;
+  }
+}

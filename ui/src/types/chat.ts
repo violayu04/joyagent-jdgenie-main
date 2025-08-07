@@ -52,6 +52,7 @@ declare global {
       message: string;
       outputStyle?: string;
       deepThink: boolean;
+      knowledgeBaseId?: number;
     }
 
     export type TAbortController ={

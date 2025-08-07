@@ -23,6 +23,7 @@ import com.jd.genie.service.AgentHandlerService;
 import com.jd.genie.service.ChatSessionService;
 import com.jd.genie.service.IGptProcessService;
 import com.jd.genie.service.UserService;
+import com.jd.genie.service.RAGService;
 import com.jd.genie.service.impl.AgentHandlerFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -61,6 +62,8 @@ public class GenieController {
     private UserService userService;
     @Autowired
     private ChatSessionService chatSessionService;
+    @Autowired
+    private RAGService ragService;
 
     /**
      * 开启SSE心跳
@@ -147,6 +150,24 @@ public class GenieController {
         registerSSEMonitor(emitter, request.getRequestId(), heartbeatFuture);
         // 拼接输出类型
         request.setQuery(handleOutputStyle(request));
+        
+        // RAG增强查询处理
+        if (request.getKnowledgeBaseId() != null) {
+            try {
+                RAGService.EnhancedQuery enhancedResult = ragService.enhanceQuery(
+                        request.getKnowledgeBaseId(), 
+                        currentUser, 
+                        request.getQuery(), 
+                        3  // topK: 检索前3个最相关的文档片段
+                );
+                request.setQuery(enhancedResult.getEnhancedPrompt());
+                log.info("{} RAG enhanced query for knowledge base {} with {} relevant chunks", 
+                        request.getRequestId(), request.getKnowledgeBaseId(), enhancedResult.getRelevantChunksCount());
+            } catch (Exception e) {
+                log.error("{} RAG query enhancement failed for knowledge base {}", request.getRequestId(), request.getKnowledgeBaseId(), e);
+            }
+        }
+        
         // 执行调度引擎
         ThreadUtil.execute(() -> {
             try {
