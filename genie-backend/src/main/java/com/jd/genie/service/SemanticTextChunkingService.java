@@ -219,13 +219,13 @@ public class SemanticTextChunkingService {
     }
     
     /**
-     * 提取表格
+     * 提取表格 - 增强版，支持多行单元格重构
      */
     private TableResult extractTable(String[] lines, int startIndex, int startPosition) {
-        StringBuilder tableContent = new StringBuilder();
         int currentPos = startPosition;
         int i = startIndex;
         int tableRowCount = 0;
+        List<String> rawTableLines = new ArrayList<>();
         
         // 收集连续的表格行
         while (i < lines.length) {
@@ -237,7 +237,7 @@ public class SemanticTextChunkingService {
                 MULTI_COLUMN_PATTERN.matcher(line).matches() ||
                 TABLE_SEPARATOR_PATTERN.matcher(line).matches()) {
                 
-                tableContent.append(line).append("\n");
+                rawTableLines.add(line);
                 currentPos += line.length() + 1;
                 tableRowCount++;
                 i++;
@@ -257,7 +257,9 @@ public class SemanticTextChunkingService {
                     
                     // 包含空行到下一个表格行
                     while (i <= nextNonEmptyIndex) {
-                        tableContent.append(lines[i]).append("\n");
+                        if (!lines[i].trim().isEmpty()) {
+                            rawTableLines.add(lines[i]);
+                        }
                         currentPos += lines[i].length() + 1;
                         i++;
                     }
@@ -279,16 +281,173 @@ public class SemanticTextChunkingService {
             return new TableResult(null, startIndex, startPosition);
         }
         
+        // 重构表格以处理多行单元格
+        String reconstructedTable = reconstructTableCells(rawTableLines);
+        
         DocumentSegment segment = new DocumentSegment();
-        segment.content = tableContent.toString().trim();
+        segment.content = reconstructedTable;
         segment.type = SegmentType.TABLE;
         segment.priority = Priority.HIGH; // 表格不应被分割
         segment.startPosition = startPosition;
         segment.endPosition = currentPos - 1; // -1 to exclude final \n
         
-        log.info("Extracted table with {} rows, {} characters", tableRowCount, segment.content.length());
+        log.info("Extracted and reconstructed table with {} rows, {} characters", tableRowCount, segment.content.length());
         
         return new TableResult(segment, i - 1, currentPos - 1);
+    }
+    
+    /**
+     * 重构表格单元格 - 将多行单元格内容合并
+     */
+    private String reconstructTableCells(List<String> tableLines) {
+        if (tableLines.isEmpty()) {
+            return "";
+        }
+        
+        // 分析表格结构
+        TableStructure structure = analyzeTableStructure(tableLines);
+        if (structure == null) {
+            // 如果无法分析结构，返回原始内容
+            return String.join("\n", tableLines);
+        }
+        
+        // 重构表格
+        List<List<String>> reconstructedRows = new ArrayList<>();
+        
+        for (int rowIndex = 0; rowIndex < structure.rowCount; rowIndex++) {
+            List<String> reconstructedRow = new ArrayList<>();
+            
+            for (int colIndex = 0; colIndex < structure.columnCount; colIndex++) {
+                StringBuilder cellContent = new StringBuilder();
+                
+                // 收集该单元格的所有内容片段
+                for (CellFragment fragment : structure.cellFragments) {
+                    if (fragment.logicalRow == rowIndex && fragment.logicalCol == colIndex) {
+                        if (cellContent.length() > 0) {
+                            cellContent.append(" ");
+                        }
+                        cellContent.append(fragment.content.trim());
+                    }
+                }
+                
+                reconstructedRow.add(cellContent.toString());
+            }
+            
+            reconstructedRows.add(reconstructedRow);
+        }
+        
+        // 转换为字符串格式
+        StringBuilder result = new StringBuilder();
+        for (List<String> row : reconstructedRows) {
+            result.append("| ");
+            for (String cell : row) {
+                result.append(cell).append(" | ");
+            }
+            result.append("\n");
+        }
+        
+        log.debug("Table reconstruction completed: {} logical rows, {} columns", 
+                 structure.rowCount, structure.columnCount);
+        
+        return result.toString().trim();
+    }
+    
+    /**
+     * 分析表格结构
+     */
+    private TableStructure analyzeTableStructure(List<String> tableLines) {
+        try {
+            TableStructure structure = new TableStructure();
+            structure.cellFragments = new ArrayList<>();
+            
+            // 分析列数（基于第一行）
+            String firstLine = tableLines.get(0);
+            String[] firstRowCells = firstLine.split("\\|");
+            structure.columnCount = Math.max(2, firstRowCells.length - (firstLine.startsWith("|") ? 2 : 1));
+            
+            int logicalRowIndex = 0;
+            int physicalRowIndex = 0;
+            
+            for (String line : tableLines) {
+                // 跳过分隔符行
+                if (TABLE_SEPARATOR_PATTERN.matcher(line).matches()) {
+                    physicalRowIndex++;
+                    continue;
+                }
+                
+                String[] cells = line.split("\\|", -1);
+                int startCol = line.startsWith("|") ? 1 : 0;
+                int endCol = Math.min(startCol + structure.columnCount, cells.length);
+                
+                // 检查这是否是新的逻辑行还是续行
+                boolean isNewRow = isNewLogicalRow(line, physicalRowIndex, tableLines);
+                
+                if (isNewRow && physicalRowIndex > 0) {
+                    logicalRowIndex++;
+                }
+                
+                // 提取每个单元格的内容
+                for (int colIndex = 0; colIndex < structure.columnCount && (startCol + colIndex) < endCol; colIndex++) {
+                    String cellContent = cells[startCol + colIndex].trim();
+                    
+                    if (!cellContent.isEmpty()) {
+                        CellFragment fragment = new CellFragment();
+                        fragment.content = cellContent;
+                        fragment.logicalRow = logicalRowIndex;
+                        fragment.logicalCol = colIndex;
+                        fragment.physicalRow = physicalRowIndex;
+                        structure.cellFragments.add(fragment);
+                    }
+                }
+                
+                physicalRowIndex++;
+            }
+            
+            structure.rowCount = logicalRowIndex + 1;
+            
+            log.debug("Table structure analyzed: {} physical rows -> {} logical rows, {} columns", 
+                     tableLines.size(), structure.rowCount, structure.columnCount);
+            
+            return structure;
+            
+        } catch (Exception e) {
+            log.warn("Failed to analyze table structure: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * 判断是否是新的逻辑行
+     */
+    private boolean isNewLogicalRow(String currentLine, int physicalRowIndex, List<String> allLines) {
+        if (physicalRowIndex == 0) {
+            return true; // 第一行总是新行
+        }
+        
+        // 如果第一个单元格有内容，通常是新行
+        String[] cells = currentLine.split("\\|", -1);
+        int startCol = currentLine.startsWith("|") ? 1 : 0;
+        
+        if (startCol < cells.length) {
+            String firstCell = cells[startCol].trim();
+            // 如果第一个单元格有实质内容，认为是新行
+            if (!firstCell.isEmpty() && firstCell.length() > 2) {
+                return true;
+            }
+        }
+        
+        // 检查是否大部分单元格都有内容（新行的特征）
+        int nonEmptyCells = 0;
+        int totalCells = 0;
+        
+        for (int i = startCol; i < cells.length && totalCells < 5; i++, totalCells++) {
+            if (!cells[i].trim().isEmpty()) {
+                nonEmptyCells++;
+            }
+        }
+        
+        // 如果超过一半的单元格有内容，认为是新行
+        return totalCells > 0 && (double) nonEmptyCells / totalCells > 0.5;
     }
     
     /**
@@ -318,30 +477,51 @@ public class SemanticTextChunkingService {
     }
     
     /**
-     * 提取普通段落
+     * 提取普通段落 - 改进的逻辑，更好地处理中文文本和连续内容
      */
     private ParagraphResult extractParagraph(String[] lines, int startIndex, int startPosition) {
         StringBuilder paragraphContent = new StringBuilder();
         int currentPos = startPosition;
         int i = startIndex;
+        int consecutiveEmptyLines = 0;
         
-        // 收集到下一个空行或特殊结构
+        // 收集到真正的段落结束
         while (i < lines.length) {
             String line = lines[i];
             
-            // 遇到空行停止
+            // 处理空行 - 只有连续2个或更多空行才结束段落
             if (line.trim().isEmpty()) {
-                break;
+                consecutiveEmptyLines++;
+                if (consecutiveEmptyLines >= 2) {
+                    break;
+                }
+                // 单个空行可能只是格式问题，继续收集
+                currentPos += line.length() + 1;
+                i++;
+                continue;
+            } else {
+                consecutiveEmptyLines = 0;
             }
             
-            // 遇到特殊结构停止
+            // 遇到明确的特殊结构停止
             if (CODE_BLOCK_START.matcher(line).matches() || 
                 TABLE_ROW_PATTERN.matcher(line).matches() ||
                 INLINE_CODE_PATTERN.matcher(line).matches()) {
                 break;
             }
             
-            paragraphContent.append(line).append("\n");
+            // 检查是否是新标题（通过缩进和特殊字符判断）
+            if (isNewSection(line, i > startIndex)) {
+                break;
+            }
+            
+            paragraphContent.append(line);
+            // 对于中文文本，行末不加换行符，用空格连接
+            if (needsSpaceConnection(line)) {
+                paragraphContent.append(" ");
+            } else {
+                paragraphContent.append("\n");
+            }
             currentPos += line.length() + 1;
             i++;
         }
@@ -352,6 +532,46 @@ public class SemanticTextChunkingService {
             i - 1, 
             currentPos - 1
         );
+    }
+    
+    /**
+     * 判断是否需要用空格连接行（主要针对中文和数字混合内容）
+     */
+    private boolean needsSpaceConnection(String line) {
+        String trimmed = line.trim();
+        if (trimmed.isEmpty()) {
+            return false;
+        }
+        
+        // 如果行末是中文字符，且不是标点符号，则用空格连接
+        char lastChar = trimmed.charAt(trimmed.length() - 1);
+        return Character.getType(lastChar) == Character.OTHER_LETTER && 
+               !"，。；：！？、".contains(String.valueOf(lastChar));
+    }
+    
+    /**
+     * 判断是否是新章节开始
+     */
+    private boolean isNewSection(String line, boolean hasContent) {
+        if (!hasContent) return false;
+        
+        String trimmed = line.trim();
+        
+        // 检查是否是数字标题（如 "1. " "（一）" 等）
+        if (trimmed.matches("^\\d+[.、]\\s+.*") || 
+            trimmed.matches("^[（（][一二三四五六七八九十\\d+][）］]\\s*.*") ||
+            trimmed.matches("^[一二三四五六七八九十]+[、.]\\s+.*")) {
+            return true;
+        }
+        
+        // 检查是否是明显的标题（全大写或特殊格式）
+        if (trimmed.matches("^[A-Z][A-Z\\s]+$") || 
+            trimmed.matches("^【.*】.*") ||
+            trimmed.matches("^\\*+\\s+.*")) {
+            return true;
+        }
+        
+        return false;
     }
     
     /**
@@ -805,5 +1025,24 @@ public class SemanticTextChunkingService {
             this.endIndex = endIndex;
             this.endPosition = endPosition;
         }
+    }
+    
+    /**
+     * 表格结构
+     */
+    private static class TableStructure {
+        int rowCount;
+        int columnCount;
+        List<CellFragment> cellFragments;
+    }
+    
+    /**
+     * 单元格片段
+     */
+    private static class CellFragment {
+        String content;
+        int logicalRow;
+        int logicalCol;
+        int physicalRow;
     }
 }

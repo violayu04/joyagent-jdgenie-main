@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -39,6 +40,7 @@ public class KnowledgeBaseService {
     private final VectorDatabaseService vectorDatabaseService;
     private final TextChunkingService textChunkingService;
     private final SemanticTextChunkingService semanticTextChunkingService;
+    private final HtmlTableAwareChunkingService htmlTableAwareChunkingService;
     private final VectorConfig vectorConfig;
     
     /**
@@ -156,28 +158,24 @@ public class KnowledgeBaseService {
     }
     
     /**
-     * 处理文档向量化
+     * 处理文档向量化 - 支持OCR增强的表格提取
      */
     @Transactional
     public void processDocumentVectorization(Document document) throws IOException {
         try {
-            log.info("Starting vectorization for document: {}", document.getDocumentId());
+            log.info("Starting vectorization for document: {} ({})", document.getDocumentId(), document.getContentType());
             
-            // 1. 提取文档内容（调用现有的文档分析服务）
-            String content = extractDocumentContent(document);
-            
-            // 2. 根据配置选择分块策略
-            VectorConfig.Chunking config = vectorConfig.getChunking();
+            // 1. 根据文件类型选择最佳的内容提取和分块策略
             List<DocumentChunk> documentChunks = new ArrayList<>();
             List<VectorDatabaseService.VectorDocument> vectorDocuments = new ArrayList<>();
             
-            if (config.getEnableSemanticChunking() && "semantic".equals(config.getStrategy())) {
-                // 使用语义感知分块
-                List<SemanticTextChunk> semanticChunks = semanticTextChunkingService.chunkTextSemantically(content);
-                log.info("Document {} split into {} semantic chunks", document.getDocumentId(), semanticChunks.size());
+            // 检查是否是图像或PDF文件，如果是则使用OCR增强分块
+            if (shouldUseOcrEnhancedChunking(document)) {
+                log.info("Using OCR-enhanced chunking for document: {}", document.getDocumentId());
+                List<HtmlTableAwareChunkingService.HtmlAwareTextChunk> ocrChunks = processWithOcrEnhancedChunking(document);
                 
-                for (SemanticTextChunk chunk : semanticChunks) {
-                    DocumentChunk documentChunk = createDocumentChunkFromSemantic(chunk, document);
+                for (HtmlTableAwareChunkingService.HtmlAwareTextChunk chunk : ocrChunks) {
+                    DocumentChunk documentChunk = createDocumentChunkFromOcr(chunk, document);
                     documentChunks.add(documentChunk);
                     
                     // 准备向量数据库文档
@@ -190,24 +188,51 @@ public class KnowledgeBaseService {
                     );
                     vectorDocuments.add(vectorDoc);
                 }
-            } else {
-                // 使用传统分块策略
-                List<TextChunk> chunks = textChunkingService.chunkText(content);
-                log.info("Document {} split into {} traditional chunks", document.getDocumentId(), chunks.size());
                 
-                for (TextChunk chunk : chunks) {
-                    DocumentChunk documentChunk = createDocumentChunkFromTraditional(chunk, document);
-                    documentChunks.add(documentChunk);
+                log.info("Document {} processed with OCR: {} chunks created", document.getDocumentId(), ocrChunks.size());
+            } else {
+                // 对于文本文件，使用传统的内容提取和分块策略
+                String content = extractDocumentContent(document);
+                VectorConfig.Chunking config = vectorConfig.getChunking();
+                
+                if (config.getEnableSemanticChunking() && "semantic".equals(config.getStrategy())) {
+                    // 使用语义感知分块
+                    List<SemanticTextChunk> semanticChunks = semanticTextChunkingService.chunkTextSemantically(content);
+                    log.info("Document {} split into {} semantic chunks", document.getDocumentId(), semanticChunks.size());
                     
-                    // 准备向量数据库文档
-                    List<Double> embedding = embeddingService.generateEmbedding(chunk.getContent());
-                    VectorDatabaseService.VectorDocument vectorDoc = new VectorDatabaseService.VectorDocument(
-                            documentChunk.getChunkId(),
-                            chunk.getContent(),
-                            embedding,
-                            documentChunk.getMetadata()
-                    );
-                    vectorDocuments.add(vectorDoc);
+                    for (SemanticTextChunk chunk : semanticChunks) {
+                        DocumentChunk documentChunk = createDocumentChunkFromSemantic(chunk, document);
+                        documentChunks.add(documentChunk);
+                        
+                        // 准备向量数据库文档
+                        List<Double> embedding = embeddingService.generateEmbedding(chunk.getContent());
+                        VectorDatabaseService.VectorDocument vectorDoc = new VectorDatabaseService.VectorDocument(
+                                documentChunk.getChunkId(),
+                                chunk.getContent(),
+                                embedding,
+                                documentChunk.getMetadata()
+                        );
+                        vectorDocuments.add(vectorDoc);
+                    }
+                } else {
+                    // 使用传统分块策略
+                    List<TextChunk> chunks = textChunkingService.chunkText(content);
+                    log.info("Document {} split into {} traditional chunks", document.getDocumentId(), chunks.size());
+                    
+                    for (TextChunk chunk : chunks) {
+                        DocumentChunk documentChunk = createDocumentChunkFromTraditional(chunk, document);
+                        documentChunks.add(documentChunk);
+                        
+                        // 准备向量数据库文档
+                        List<Double> embedding = embeddingService.generateEmbedding(chunk.getContent());
+                        VectorDatabaseService.VectorDocument vectorDoc = new VectorDatabaseService.VectorDocument(
+                                documentChunk.getChunkId(),
+                                chunk.getContent(),
+                                embedding,
+                                documentChunk.getMetadata()
+                        );
+                        vectorDocuments.add(vectorDoc);
+                    }
                 }
             }
             
@@ -501,6 +526,124 @@ public class KnowledgeBaseService {
         }
     }
     
+    /**
+     * 判断是否应该使用OCR增强分块
+     */
+    private boolean shouldUseOcrEnhancedChunking(Document document) {
+        String contentType = document.getContentType();
+        if (contentType == null) {
+            contentType = guessContentTypeFromExtension(document.getOriginalFilename());
+        }
+        
+        // 对图像文件始终使用OCR
+        if (contentType != null && contentType.startsWith("image/")) {
+            log.info("Using OCR for image file: {}", document.getDocumentId());
+            return true;
+        }
+        
+        // 对PDF文件，先检查是否为数字原生PDF
+        if (contentType != null && contentType.equals("application/pdf")) {
+            boolean hasText = hasExtractableText(document.getFilePath());
+            if (!hasText) {
+                log.info("Using OCR for scanned PDF: {}", document.getDocumentId());
+                return true;
+            } else {
+                log.info("Skipping OCR for digital native PDF: {}", document.getDocumentId());
+                return false;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 检查PDF是否包含可提取的文本内容
+     */
+    private boolean hasExtractableText(String filePath) {
+        try (PDDocument document = PDDocument.load(new File(filePath))) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            stripper.setStartPage(1);
+            stripper.setEndPage(Math.min(3, document.getNumberOfPages())); // 只检查前3页
+            String text = stripper.getText(document);
+            
+            // 移除空白字符后检查长度
+            String cleanText = text.replaceAll("\\s+", "").trim();
+            boolean hasText = cleanText.length() > 100; // 阈值可根据需要调整
+            
+            log.debug("PDF {} has extractable text: {} (length: {})", 
+                     filePath, hasText, cleanText.length());
+            
+            return hasText;
+        } catch (IOException e) {
+            log.warn("Failed to check PDF text content for {}: {}", filePath, e.getMessage());
+            return false; // 如果无法检查，默认使用OCR
+        }
+    }
+    
+    /**
+     * 使用OCR增强分块处理文档
+     */
+    private List<HtmlTableAwareChunkingService.HtmlAwareTextChunk> processWithOcrEnhancedChunking(Document document) throws IOException {
+        Path filePath = Paths.get(document.getFilePath());
+        File file = filePath.toFile();
+        String contentType = document.getContentType();
+        
+        if (contentType == null) {
+            contentType = guessContentTypeFromExtension(document.getOriginalFilename());
+        }
+        
+        return htmlTableAwareChunkingService.chunkTextWithOcrEnhancement(file, contentType);
+    }
+    
+    /**
+     * 从OCR分块创建文档分块
+     */
+    private DocumentChunk createDocumentChunkFromOcr(HtmlTableAwareChunkingService.HtmlAwareTextChunk ocrChunk, Document document) {
+        DocumentChunk documentChunk = new DocumentChunk();
+        documentChunk.setChunkId(UUID.randomUUID().toString());
+        documentChunk.setDocument(document);
+        documentChunk.setChunkIndex(ocrChunk.getChunkIndex());
+        documentChunk.setContent(ocrChunk.getContent());
+        documentChunk.setTokenCount(ocrChunk.getTokenCount());
+        documentChunk.setStartPos(ocrChunk.getStartPos());
+        documentChunk.setEndPos(ocrChunk.getEndPos());
+        
+        // 设置增强的元数据，包含OCR和表格信息
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("chunk_type", ocrChunk.getChunkType().name());
+        
+        if (ocrChunk.getChunkType() == HtmlTableAwareChunkingService.ChunkType.TABLE) {
+            metadata.put("table_rows", ocrChunk.getTableRows());
+            metadata.put("table_cols", ocrChunk.getTableCols());
+            metadata.put("html_content", ocrChunk.getHtmlContent());
+            
+            // 添加空间边界信息
+            if (ocrChunk.getSpatialBounds() != null) {
+                java.awt.Rectangle bounds = ocrChunk.getSpatialBounds();
+                metadata.put("spatial_bounds", Map.of(
+                    "x", bounds.x,
+                    "y", bounds.y,
+                    "width", bounds.width,
+                    "height", bounds.height
+                ));
+            }
+            
+            // 添加行关联元数据
+            if (ocrChunk.getRowAssociationMetadata() != null) {
+                metadata.put("row_association", ocrChunk.getRowAssociationMetadata());
+            }
+        }
+        
+        metadata.put("extraction_method", "spatial_ocr");
+        metadata.put("document_id", document.getDocumentId());
+        metadata.put("original_filename", document.getOriginalFilename());
+        metadata.put("content_type", document.getContentType());
+        
+        documentChunk.setMetadata(metadata);
+        
+        return documentChunk;
+    }
+    
     private String guessContentTypeFromExtension(String filename) {
         if (filename == null) return "application/octet-stream";
         
@@ -512,6 +655,12 @@ public class KnowledgeBaseService {
         if (lowerCase.endsWith(".doc")) return "application/msword";
         if (lowerCase.endsWith(".json")) return "application/json";
         if (lowerCase.endsWith(".csv")) return "text/csv";
+        // 图像文件类型
+        if (lowerCase.endsWith(".jpg") || lowerCase.endsWith(".jpeg")) return "image/jpeg";
+        if (lowerCase.endsWith(".png")) return "image/png";
+        if (lowerCase.endsWith(".gif")) return "image/gif";
+        if (lowerCase.endsWith(".bmp")) return "image/bmp";
+        if (lowerCase.endsWith(".tiff") || lowerCase.endsWith(".tif")) return "image/tiff";
         
         return "application/octet-stream";
     }
