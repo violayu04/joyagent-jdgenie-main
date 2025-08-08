@@ -5,6 +5,8 @@ import com.jd.genie.dto.knowledgebase.KnowledgeBaseDto;
 import com.jd.genie.entity.*;
 import com.jd.genie.repository.*;
 import com.jd.genie.service.TextChunkingService.TextChunk;
+import com.jd.genie.service.SemanticTextChunkingService.SemanticTextChunk;
+import com.jd.genie.config.VectorConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,8 @@ public class KnowledgeBaseService {
     private final EmbeddingService embeddingService;
     private final VectorDatabaseService vectorDatabaseService;
     private final TextChunkingService textChunkingService;
+    private final SemanticTextChunkingService semanticTextChunkingService;
+    private final VectorConfig vectorConfig;
     
     /**
      * 创建知识库
@@ -162,48 +166,49 @@ public class KnowledgeBaseService {
             // 1. 提取文档内容（调用现有的文档分析服务）
             String content = extractDocumentContent(document);
             
-            // 2. 文本分块
-            List<TextChunk> chunks = textChunkingService.chunkText(content);
-            log.info("Document {} split into {} chunks", document.getDocumentId(), chunks.size());
-            
-            // 3. 生成向量并存储
+            // 2. 根据配置选择分块策略
+            VectorConfig.Chunking config = vectorConfig.getChunking();
             List<DocumentChunk> documentChunks = new ArrayList<>();
             List<VectorDatabaseService.VectorDocument> vectorDocuments = new ArrayList<>();
             
-            for (TextChunk chunk : chunks) {
-                // 生成向量
-                List<Double> embedding = embeddingService.generateEmbedding(chunk.getContent());
+            if (config.getEnableSemanticChunking() && "semantic".equals(config.getStrategy())) {
+                // 使用语义感知分块
+                List<SemanticTextChunk> semanticChunks = semanticTextChunkingService.chunkTextSemantically(content);
+                log.info("Document {} split into {} semantic chunks", document.getDocumentId(), semanticChunks.size());
                 
-                // 创建文档块记录
-                DocumentChunk documentChunk = new DocumentChunk();
-                documentChunk.setChunkId(UUID.randomUUID().toString());
-                documentChunk.setDocument(document);
-                documentChunk.setContent(chunk.getContent());
-                documentChunk.setChunkIndex(chunk.getChunkIndex());
-                documentChunk.setStartPos(chunk.getStartPos());
-                documentChunk.setEndPos(chunk.getEndPos());
-                documentChunk.setTokenCount(chunk.getTokenCount());
-                documentChunk.setEmbeddingId(documentChunk.getChunkId()); // 使用chunkId作为embeddingId
+                for (SemanticTextChunk chunk : semanticChunks) {
+                    DocumentChunk documentChunk = createDocumentChunkFromSemantic(chunk, document);
+                    documentChunks.add(documentChunk);
+                    
+                    // 准备向量数据库文档
+                    List<Double> embedding = embeddingService.generateEmbedding(chunk.getContent());
+                    VectorDatabaseService.VectorDocument vectorDoc = new VectorDatabaseService.VectorDocument(
+                            documentChunk.getChunkId(),
+                            chunk.getContent(),
+                            embedding,
+                            documentChunk.getMetadata()
+                    );
+                    vectorDocuments.add(vectorDoc);
+                }
+            } else {
+                // 使用传统分块策略
+                List<TextChunk> chunks = textChunkingService.chunkText(content);
+                log.info("Document {} split into {} traditional chunks", document.getDocumentId(), chunks.size());
                 
-                // 设置元数据
-                Map<String, Object> chunkMetadata = new HashMap<>();
-                chunkMetadata.put("document_id", document.getDocumentId());
-                chunkMetadata.put("knowledge_base_id", document.getKnowledgeBase().getId());
-                chunkMetadata.put("filename", document.getOriginalFilename());
-                chunkMetadata.put("chunk_index", chunk.getChunkIndex());
-                chunkMetadata.put("token_count", chunk.getTokenCount());
-                documentChunk.setMetadata(chunkMetadata);
-                
-                documentChunks.add(documentChunk);
-                
-                // 准备向量数据库文档
-                VectorDatabaseService.VectorDocument vectorDoc = new VectorDatabaseService.VectorDocument(
-                        documentChunk.getChunkId(),
-                        chunk.getContent(),
-                        embedding,
-                        chunkMetadata
-                );
-                vectorDocuments.add(vectorDoc);
+                for (TextChunk chunk : chunks) {
+                    DocumentChunk documentChunk = createDocumentChunkFromTraditional(chunk, document);
+                    documentChunks.add(documentChunk);
+                    
+                    // 准备向量数据库文档
+                    List<Double> embedding = embeddingService.generateEmbedding(chunk.getContent());
+                    VectorDatabaseService.VectorDocument vectorDoc = new VectorDatabaseService.VectorDocument(
+                            documentChunk.getChunkId(),
+                            chunk.getContent(),
+                            embedding,
+                            documentChunk.getMetadata()
+                    );
+                    vectorDocuments.add(vectorDoc);
+                }
             }
             
             // 4. 保存到数据库
@@ -624,5 +629,65 @@ public class KnowledgeBaseService {
         
         public Integer getTokenCount() { return tokenCount; }
         public void setTokenCount(Integer tokenCount) { this.tokenCount = tokenCount; }
+    }
+    
+    /**
+     * 从语义分块创建DocumentChunk
+     */
+    private DocumentChunk createDocumentChunkFromSemantic(SemanticTextChunk chunk, Document document) {
+        DocumentChunk documentChunk = new DocumentChunk();
+        documentChunk.setChunkId(UUID.randomUUID().toString());
+        documentChunk.setDocument(document);
+        documentChunk.setContent(chunk.getContent());
+        documentChunk.setChunkIndex(chunk.getChunkIndex());
+        documentChunk.setStartPos(chunk.getStartPos());
+        documentChunk.setEndPos(chunk.getEndPos());
+        documentChunk.setTokenCount(chunk.getTokenCount());
+        documentChunk.setEmbeddingId(documentChunk.getChunkId()); // 使用chunkId作为embeddingId
+        
+        // 设置增强的元数据（包含语义特征）
+        Map<String, Object> chunkMetadata = new HashMap<>();
+        chunkMetadata.put("document_id", document.getDocumentId());
+        chunkMetadata.put("knowledge_base_id", document.getKnowledgeBase().getId());
+        chunkMetadata.put("filename", document.getOriginalFilename());
+        chunkMetadata.put("chunk_index", chunk.getChunkIndex());
+        chunkMetadata.put("token_count", chunk.getTokenCount());
+        // 语义特征标记
+        chunkMetadata.put("has_title", chunk.getHasTitle());
+        chunkMetadata.put("has_list_items", chunk.getHasListItems());
+        chunkMetadata.put("has_table", chunk.getHasTable());
+        chunkMetadata.put("has_code_block", chunk.getHasCodeBlock());
+        chunkMetadata.put("segment_count", chunk.getSegmentCount());
+        chunkMetadata.put("chunk_type", "semantic"); // 标识为语义分块
+        documentChunk.setMetadata(chunkMetadata);
+        
+        return documentChunk;
+    }
+    
+    /**
+     * 从传统分块创建DocumentChunk
+     */
+    private DocumentChunk createDocumentChunkFromTraditional(TextChunk chunk, Document document) {
+        DocumentChunk documentChunk = new DocumentChunk();
+        documentChunk.setChunkId(UUID.randomUUID().toString());
+        documentChunk.setDocument(document);
+        documentChunk.setContent(chunk.getContent());
+        documentChunk.setChunkIndex(chunk.getChunkIndex());
+        documentChunk.setStartPos(chunk.getStartPos());
+        documentChunk.setEndPos(chunk.getEndPos());
+        documentChunk.setTokenCount(chunk.getTokenCount());
+        documentChunk.setEmbeddingId(documentChunk.getChunkId()); // 使用chunkId作为embeddingId
+        
+        // 设置基本元数据
+        Map<String, Object> chunkMetadata = new HashMap<>();
+        chunkMetadata.put("document_id", document.getDocumentId());
+        chunkMetadata.put("knowledge_base_id", document.getKnowledgeBase().getId());
+        chunkMetadata.put("filename", document.getOriginalFilename());
+        chunkMetadata.put("chunk_index", chunk.getChunkIndex());
+        chunkMetadata.put("token_count", chunk.getTokenCount());
+        chunkMetadata.put("chunk_type", "traditional"); // 标识为传统分块
+        documentChunk.setMetadata(chunkMetadata);
+        
+        return documentChunk;
     }
 }

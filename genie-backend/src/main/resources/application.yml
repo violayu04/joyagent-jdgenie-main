@@ -438,7 +438,9 @@ vector:
   
   # 文本分块配置
   chunking:
-    chunk-size: 500
-    chunk-overlap: 100
-    strategy: recursive  # 支持: recursive, sentence, paragraph
+    chunk-size: 2000     # 增大chunk大小以容纳完整的表格和代码块
+    chunk-overlap: 200
+    strategy: semantic   # 启用语义感知分块策略
     separators: "\n\n,\n, ,。,！,？,，"
+    enable-semantic-chunking: true  # 启用语义感知分块
+    max-table-chunk-size: 4000      # 表格专用的最大chunk大小

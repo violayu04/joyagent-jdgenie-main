@@ -45,9 +45,11 @@ public class VectorConfig {
     
     @Data
     public static class Chunking {
-        private Integer chunkSize = 1000;
+        private Integer chunkSize = 2000; // 增大chunk大小以容纳完整的表格和代码块
         private Integer chunkOverlap = 200;
-        private String strategy = "recursive"; // recursive, sentence, paragraph
+        private String strategy = "semantic"; // semantic, recursive, sentence, paragraph
         private String separators = "\n\n,\n, ,。,！,？";
+        private Boolean enableSemanticChunking = true; // 启用语义感知分块
+        private Integer maxTableChunkSize = 4000; // 表格专用的最大chunk大小
     }
 }
