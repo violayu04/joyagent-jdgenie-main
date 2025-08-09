@@ -32,4 +32,7 @@ public interface DocumentChunkRepository extends JpaRepository<DocumentChunk, Lo
     
     @Query("SELECT dc FROM DocumentChunk dc WHERE dc.content = :content AND dc.document.knowledgeBase = :knowledgeBase")
     Optional<DocumentChunk> findByContentAndKnowledgeBase(@Param("content") String content, @Param("knowledgeBase") KnowledgeBase knowledgeBase);
+    
+    @Query("SELECT dc FROM DocumentChunk dc WHERE dc.document.documentId IN :documentIds ORDER BY dc.chunkIndex ASC")
+    List<DocumentChunk> findByDocumentDocumentIdInOrderByChunkIndexAsc(@Param("documentIds") List<String> documentIds);
 }

@@ -53,6 +53,7 @@ declare global {
       outputStyle?: string;
       deepThink: boolean;
       knowledgeBaseId?: number;
+      documentIds?: string[];
     }
 
     export type TAbortController ={

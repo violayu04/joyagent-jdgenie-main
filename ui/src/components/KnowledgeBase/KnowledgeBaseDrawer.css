@@ -1,0 +1,54 @@
+.knowledge-base-drawer-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #1f2937;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.2s;
+  border: none;
+  box-shadow: none;
+}
+
+.knowledge-base-drawer-trigger:hover {
+  background-color: #f3f4f6;
+  color: #1890ff;
+}
+
+.knowledge-base-drawer-trigger:focus {
+  background-color: #f3f4f6;
+  color: #1890ff;
+}
+
+.knowledge-base-drawer .ant-drawer-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.knowledge-base-drawer .ant-drawer-title {
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.knowledge-base-drawer .ant-drawer-title::before {
+  content: '🗃️';
+  margin-right: 8px;
+}
+
+.knowledge-base-drawer .ant-drawer-body {
+  background-color: #fafafa;
+}
+
+/* 确保抽屉在最上层 */
+.knowledge-base-drawer.ant-drawer {
+  z-index: 1001;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .knowledge-base-drawer {
+    width: 100% !important;
+  }
+}

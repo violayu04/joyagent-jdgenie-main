@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,12 +26,42 @@ public class RAGService {
      * @return 增强后的查询
      */
     public EnhancedQuery enhanceQuery(Long knowledgeBaseId, User user, String originalQuery, int topK) {
+        return enhanceQuery(knowledgeBaseId, user, originalQuery, topK, null);
+    }
+    
+    /**
+     * 基于知识库特定文档增强用户查询
+     * @param knowledgeBaseId 知识库ID
+     * @param user 用户
+     * @param originalQuery 原始查询
+     * @param topK 检索结果数量
+     * @param documentIds 指定文档ID列表（可选）
+     * @return 增强后的查询
+     */
+    public EnhancedQuery enhanceQuery(Long knowledgeBaseId, User user, String originalQuery, int topK, List<String> documentIds) {
         try {
             log.info("Enhancing query with knowledge base: knowledgeBaseId={}, query={}", knowledgeBaseId, originalQuery);
             
             // 1. 在知识库中搜索相关内容
-            List<SearchResult> searchResults = knowledgeBaseService.searchInKnowledgeBase(
-                    knowledgeBaseId, user, originalQuery, topK);
+            List<SearchResult> searchResults;
+            if (documentIds != null && !documentIds.isEmpty()) {
+                log.info("Searching in specific documents: {}", documentIds);
+                if (knowledgeBaseId != null) {
+                    // 如果指定了知识库ID，在该知识库内搜索特定文档
+                    searchResults = knowledgeBaseService.searchInSpecificDocuments(
+                            knowledgeBaseId, user, originalQuery, topK, documentIds);
+                } else {
+                    // 如果没有指定知识库ID，跨知识库搜索指定文档
+                    searchResults = knowledgeBaseService.searchInSpecificDocumentsAcrossKB(
+                            user, originalQuery, topK, documentIds);
+                }
+            } else if (knowledgeBaseId != null) {
+                searchResults = knowledgeBaseService.searchInKnowledgeBase(
+                        knowledgeBaseId, user, originalQuery, topK);
+            } else {
+                log.info("No knowledge base ID or document IDs provided");
+                return new EnhancedQuery(originalQuery, "", new ArrayList<>());
+            }
             
             if (searchResults.isEmpty()) {
                 log.info("No relevant documents found in knowledge base");

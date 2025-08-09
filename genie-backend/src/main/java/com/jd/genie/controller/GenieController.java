@@ -158,11 +158,16 @@ public class GenieController {
                         request.getKnowledgeBaseId(), 
                         currentUser, 
                         request.getQuery(), 
-                        3  // topK: 检索前3个最相关的文档片段
+                        3,  // topK: 检索前3个最相关的文档片段
+                        request.getDocumentIds()  // 指定文档ID列表
                 );
                 request.setQuery(enhancedResult.getEnhancedPrompt());
-                log.info("{} RAG enhanced query for knowledge base {} with {} relevant chunks", 
-                        request.getRequestId(), request.getKnowledgeBaseId(), enhancedResult.getRelevantChunksCount());
+                
+                String documentInfo = request.getDocumentIds() != null && !request.getDocumentIds().isEmpty() 
+                    ? String.format(" from %d specific documents", request.getDocumentIds().size())
+                    : " from entire knowledge base";
+                log.info("{} RAG enhanced query for knowledge base {}{} with {} relevant chunks", 
+                        request.getRequestId(), request.getKnowledgeBaseId(), documentInfo, enhancedResult.getRelevantChunksCount());
             } catch (Exception e) {
                 log.error("{} RAG query enhancement failed for knowledge base {}", request.getRequestId(), request.getKnowledgeBaseId(), e);
             }

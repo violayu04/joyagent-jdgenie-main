@@ -24,6 +24,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
@@ -303,6 +304,178 @@ public class KnowledgeBaseService {
         } catch (Exception e) {
             log.error("Failed to search in knowledge base: {}", knowledgeBaseId, e);
             throw new RuntimeException("搜索失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 在指定文档中搜索相关内容
+     * @param knowledgeBaseId 知识库ID
+     * @param user 用户
+     * @param query 查询内容
+     * @param topK 返回结果数量
+     * @param documentIds 指定的文档ID列表
+     * @return 搜索结果
+     */
+    public List<SearchResult> searchInSpecificDocuments(Long knowledgeBaseId, User user, String query, int topK, List<String> documentIds) {
+        // 验证知识库权限
+        KnowledgeBase knowledgeBase = knowledgeBaseRepository.findByIdAndUser(knowledgeBaseId, user)
+                .orElseThrow(() -> new RuntimeException("知识库不存在或无权限访问"));
+        
+        if (documentIds == null || documentIds.isEmpty()) {
+            return searchInKnowledgeBase(knowledgeBaseId, user, query, topK);
+        }
+        
+        try {
+            // 1. 将查询向量化
+            List<Double> queryEmbedding = embeddingService.generateEmbedding(query);
+            
+            // 2. 获取指定文档的所有chunks的embedding IDs
+            List<DocumentChunk> documentChunks = documentChunkRepository.findByDocumentDocumentIdInOrderByChunkIndexAsc(documentIds);
+            
+            if (documentChunks.isEmpty()) {
+                log.info("No chunks found for specified documents: {}", documentIds);
+                return new ArrayList<>();
+            }
+            
+            // 3. 使用向量数据库搜索，但只在指定chunks中搜索
+            List<String> embeddingIds = documentChunks.stream()
+                    .map(DocumentChunk::getEmbeddingId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            
+            if (embeddingIds.isEmpty()) {
+                log.info("No embeddings found for specified documents: {}", documentIds);
+                return new ArrayList<>();
+            }
+            
+            // 4. 进行向量搜索（限制在指定的embedding范围内）
+            List<VectorDatabaseService.SearchResult> vectorResults = vectorDatabaseService.search(
+                    queryEmbedding, topK * 2, knowledgeBaseId); // 获取更多结果然后过滤
+            
+            // 5. 过滤出属于指定文档的结果
+            List<SearchResult> results = new ArrayList<>();
+            Set<String> targetEmbeddingIds = new HashSet<>(embeddingIds);
+            
+            for (VectorDatabaseService.SearchResult vectorResult : vectorResults) {
+                if (targetEmbeddingIds.contains(vectorResult.getId())) {
+                    Optional<DocumentChunk> chunk = documentChunkRepository.findByEmbeddingId(vectorResult.getId());
+                    if (chunk.isPresent()) {
+                        DocumentChunk documentChunk = chunk.get();
+                        
+                        SearchResult result = new SearchResult();
+                        result.setChunkId(documentChunk.getChunkId());
+                        result.setContent(documentChunk.getContent());
+                        result.setScore(vectorResult.getScore());
+                        result.setDocument(documentChunk.getDocument());
+                        result.setChunkIndex(documentChunk.getChunkIndex());
+                        result.setTokenCount(documentChunk.getTokenCount());
+                        
+                        results.add(result);
+                        
+                        if (results.size() >= topK) {
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            return results;
+            
+        } catch (Exception e) {
+            log.error("Failed to search in specific documents: knowledgeBaseId={}, documentIds={}", knowledgeBaseId, documentIds, e);
+            throw new RuntimeException("搜索失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 跨知识库搜索指定文档中的相关内容
+     * @param user 用户
+     * @param query 查询内容
+     * @param topK 返回结果数量
+     * @param documentIds 指定的文档ID列表
+     * @return 搜索结果
+     */
+    public List<SearchResult> searchInSpecificDocumentsAcrossKB(User user, String query, int topK, List<String> documentIds) {
+        if (documentIds == null || documentIds.isEmpty()) {
+            log.info("No document IDs provided for cross-KB search");
+            return new ArrayList<>();
+        }
+        
+        try {
+            // 1. 获取指定文档的所有chunks，同时验证用户权限
+            List<DocumentChunk> documentChunks = documentChunkRepository.findByDocumentDocumentIdInOrderByChunkIndexAsc(documentIds);
+            
+            if (documentChunks.isEmpty()) {
+                log.info("No chunks found for specified documents: {}", documentIds);
+                return new ArrayList<>();
+            }
+            
+            // 2. 验证用户对所有相关知识库的访问权限
+            Set<Long> knowledgeBaseIds = documentChunks.stream()
+                    .map(chunk -> chunk.getDocument().getKnowledgeBase().getId())
+                    .collect(Collectors.toSet());
+            
+            for (Long kbId : knowledgeBaseIds) {
+                knowledgeBaseRepository.findByIdAndUser(kbId, user)
+                        .orElseThrow(() -> new RuntimeException("知识库 " + kbId + " 不存在或无权限访问"));
+            }
+            
+            // 3. 将查询向量化
+            List<Double> queryEmbedding = embeddingService.generateEmbedding(query);
+            
+            // 4. 使用向量搜索，但只在指定chunks中搜索
+            List<String> embeddingIds = documentChunks.stream()
+                    .map(DocumentChunk::getEmbeddingId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            
+            if (embeddingIds.isEmpty()) {
+                log.info("No embeddings found for specified documents: {}", documentIds);
+                return new ArrayList<>();
+            }
+            
+            // 5. 从每个相关的知识库中搜索，然后合并结果
+            List<SearchResult> allResults = new ArrayList<>();
+            
+            for (Long kbId : knowledgeBaseIds) {
+                try {
+                    List<VectorDatabaseService.SearchResult> vectorResults = vectorDatabaseService.search(
+                            queryEmbedding, topK * 2, kbId);
+                    
+                    Set<String> targetEmbeddingIds = new HashSet<>(embeddingIds);
+                    
+                    for (VectorDatabaseService.SearchResult vectorResult : vectorResults) {
+                        if (targetEmbeddingIds.contains(vectorResult.getId())) {
+                            Optional<DocumentChunk> chunk = documentChunkRepository.findByEmbeddingId(vectorResult.getId());
+                            if (chunk.isPresent()) {
+                                DocumentChunk documentChunk = chunk.get();
+                                
+                                SearchResult result = new SearchResult();
+                                result.setChunkId(documentChunk.getChunkId());
+                                result.setContent(documentChunk.getContent());
+                                result.setScore(vectorResult.getScore());
+                                result.setDocument(documentChunk.getDocument());
+                                result.setChunkIndex(documentChunk.getChunkIndex());
+                                result.setTokenCount(documentChunk.getTokenCount());
+                                
+                                allResults.add(result);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to search in knowledge base {}: {}", kbId, e.getMessage());
+                }
+            }
+            
+            // 6. 按相似度排序并返回topK结果
+            return allResults.stream()
+                    .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+                    .limit(topK)
+                    .collect(Collectors.toList());
+            
+        } catch (Exception e) {
+            log.error("Failed to search in specific documents across knowledge bases: documentIds={}", documentIds, e);
+            throw new RuntimeException("跨知识库搜索失败: " + e.getMessage());
         }
     }
     

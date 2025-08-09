@@ -8,6 +8,7 @@ import { demoList } from "@/utils/constants";
 import ProtectedRoute from "@/components/Auth/ProtectedRoute";
 import GlobalSidebar from "@/components/GlobalSidebar";
 import UserProfile from "@/components/UserProfile/UserProfile";
+import KnowledgeBaseDrawer from "@/components/KnowledgeBase/KnowledgeBaseDrawer";
 
 const { Content, Header } = Layout;
 
@@ -160,12 +161,15 @@ const Home: GenieType.FC<HomeProps> = memo(() => {
           alignItems: 'center',
           padding: '0 24px'
         }}>
-          <GlobalSidebar
-            onSessionSelect={handleSessionSelect}
-            onNewSession={handleNewSession}
-            selectedSessionId={selectedSessionId}
-            onSessionTitleUpdate={handleSessionTitleUpdate}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <GlobalSidebar
+              onSessionSelect={handleSessionSelect}
+              onNewSession={handleNewSession}
+              selectedSessionId={selectedSessionId}
+              onSessionTitleUpdate={handleSessionTitleUpdate}
+            />
+            <KnowledgeBaseDrawer />
+          </div>
           <UserProfile />
         </Header>
 

@@ -5,7 +5,7 @@ import classNames from "classnames";
 import { TextAreaRef } from "antd/es/input/TextArea";
 import { getOS } from "@/utils";
 import type { UploadProps } from 'antd';
-import KnowledgeBaseSelector from '../KnowledgeBase/KnowledgeBaseSelector';
+import DirectDocumentSelector from '../KnowledgeBase/DirectDocumentSelector';
 
 const { TextArea } = Input;
 
@@ -72,7 +72,8 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
   const [supportedFormats, setSupportedFormats] = useState<Record<string, string>>({});
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedFile, setSelectedFile] = useState<CHAT.TFile | null>(null);
-  const [selectedKnowledgeBaseId, setSelectedKnowledgeBaseId] = useState<number | undefined>();
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
+  const [selectedKnowledgeBaseIds, setSelectedKnowledgeBaseIds] = useState<number[]>([]);
   const textareaRef = useRef<TextAreaRef>(null);
   const tempData = useRef<{
     cmdPress?: boolean;
@@ -93,6 +94,11 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
   };
 
   const generateSessionId = () => `genie-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+  const handleDocumentSelectionChange = (documentIds: string[], knowledgeBaseIds: number[]) => {
+    setSelectedDocumentIds(documentIds);
+    setSelectedKnowledgeBaseIds(knowledgeBaseIds);
+  };
 
   const processFile = useCallback(async (file: CHAT.TFile, originalFile: File) => {
     const sessionId = generateSessionId();
@@ -251,7 +257,8 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
       outputStyle: product?.type,
       deepThink,
       files: files.length > 0 ? files : undefined,
-      knowledgeBaseId: selectedKnowledgeBaseId,
+      knowledgeBaseId: selectedKnowledgeBaseIds.length > 0 ? selectedKnowledgeBaseIds[0] : undefined,
+      documentIds: selectedDocumentIds.length > 0 ? selectedDocumentIds : undefined,
     });
     
     // Clear the input field after a small delay to ensure DOM is updated
@@ -423,7 +430,7 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
             ) : null}
           </div>
           
-          <div className="h-30 flex justify-between items-center mt-[6px]">
+          <div className="flex justify-between items-center mt-[6px]" style={{ minHeight: '32px' }}>
             <div className="flex items-center space-x-2">
               {showBtn ? (
                 <Button
@@ -453,11 +460,16 @@ const GeneralInput: GenieType.FC<Props> = (props) => {
                 {files.length > 0 ? `${files.length} 文档` : '上传文档'}
               </Button>
               
-              {/* Knowledge Base Selector */}
-              <div className="knowledge-base-selector-wrapper">
-                <KnowledgeBaseSelector
-                  value={selectedKnowledgeBaseId}
-                  onChange={setSelectedKnowledgeBaseId}
+              {/* Direct Document Selector */}
+              <div className="direct-document-selector-wrapper" style={{ 
+                minWidth: '280px', 
+                maxWidth: '400px',
+                position: 'relative',
+                zIndex: 10
+              }}>
+                <DirectDocumentSelector
+                  value={selectedDocumentIds}
+                  onChange={handleDocumentSelectionChange}
                   disabled={disabled}
                 />
               </div>
